@@ -23,6 +23,10 @@ const Customer = sequelize.define('users', {
         type : DataTypes.STRING,
         default : false
     },
+    vehicle_status : {
+        type : DataTypes.STRING,
+        default : false
+    },
     address : {
         type : DataTypes.TEXT,
         allowNull: true
@@ -47,7 +51,7 @@ const Customer = sequelize.define('users', {
         type : DataTypes.INTEGER,
         allowNull: true
     },
-    creatDate : {
+    createDate : {
         type : DataTypes.DATE,
         defaultValue : new Date()
     },
@@ -103,6 +107,10 @@ const Pincode = sequelize.define('pincode',{
 
 
 const Customer_Vehilce = sequelize.define('customer_vehilce',{
+    userId : {
+        type : DataTypes.STRING,
+        allowNull: true
+    },
     vehicle_type : {
         type : DataTypes.STRING,
         allowNull: true
@@ -138,11 +146,39 @@ const Customer_Vehilce = sequelize.define('customer_vehilce',{
 },{tableName:'customer_vehilce'});
 
 
+const Wallet = sequelize.define('customer_wallet',{
+    userId : {
+        type : DataTypes.NUMBER,
+        allowNull: true
+    },
+    amount : {
+        type : DataTypes.NUMBER,
+        allowNull: true
+    },
+    coupon_code : {
+        type : DataTypes.STRING,
+        allowNull: true
+    },
+    payment_method : {
+        type : DataTypes.STRING,
+        allowNull: true
+    },
+    createDate : {
+        type : DataTypes.DATE,
+        default: new Date()
+    },
+    updateDate : {
+        type : DataTypes.DATE,
+        default: new Date()
+    }
+},{tableName:"customer_wallet"});
+
 
 module.exports = {
     Customer,
     State,
     Cities,
     Pincode,
-    Customer_Vehilce
+    Customer_Vehilce,
+    Wallet
 }

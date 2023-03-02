@@ -124,6 +124,59 @@ module.exports.getCustomer = async(req,res) => {
 }
 
 
+module.exports.customerEdit = async(req,res) => {
+    try {
+        const customerId = req.params.Id;
+        const getCustomer = await Customer.findOne({where:{id:customerId}});
+        if(getCustomer){
+            successResponseWithData(
+                res,
+                "Customer Data",
+                getCustomer
+            );
+        }
+        // console.log('getCustomer',getCustomer)
+        else{
+            notFoundResponse(res,"Customer Data Not Found");
+        }
+    } catch (error) {
+        console.log('getCustomer Error', error);
+        badRequest(res,error);
+    }
+}
+
+
+module.exports.updateCustomer = async(req,res) => {
+    try {
+        const schema = joi.object({
+            customerId : joi.number().required(),
+            fullName : joi.string().required(),
+            email : joi.string().email().required(),
+            phoneNum : joi.string().required(),
+            address : joi.string().required(),
+            wing : joi.string().required(),
+            society : joi.string().required(),
+            state : joi.string().required(),
+            city : joi.string().required(),
+            pincode : joi.string().required(),
+        });
+        validationJoi.joiValidation(schema,req.body);
+        const {customerId,fullName, email,phoneNum,address,wing,society,state,city,pincode} = req.body;
+        const data = {customerId,fullName, email,phoneNum,address,wing,society,state,city,pincode};
+        const update =  await Customer.update(data,{where:{id:customerId}});
+        if(update){
+            successResponse(
+                res,
+                'Customer Updated Successfuly'
+            )
+        }
+    } catch (error) {
+        console.log('getCustomer Error', error);
+        badRequest(res,error);
+    }
+}
+
+
 module.exports.vehicles = async(req,res) => {
     try {
         const vehicleData = await Customer_Vehilce.findAll({

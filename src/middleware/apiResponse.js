@@ -7,11 +7,23 @@ module.exports.successResponseWithData = (res,msg,data) => {
 	return res.status(200).json(response);
 };
 
-module.exports.loggingRespons = (res,msg,data) => {
+module.exports.successCompleteRes = (res,msg,data,result) => {
     const response = {
 		status: true,
 		message: msg,
-        token:data
+		isexist:result,
+        data:data
+	};
+	return res.status(200).json(response);
+};
+
+module.exports.loggingRespons = (res,msg,result,token,data) => {
+    const response = {
+		status: true,
+		message: msg,
+		isexist:result,
+		token:token,
+        data:data
 	};
 	return res.status(200).json(response);
 }
@@ -32,7 +44,7 @@ module.exports.errorResponse = (res,msg) => {
 	return res.status(400).json(response);
 };
 
-module.exports.notFoundResponse = (data,msg) => {
+module.exports.notFoundResponse = (res,msg) => {
     const response = {
 		status: false,
 		message: msg,

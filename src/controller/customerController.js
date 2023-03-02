@@ -1,15 +1,162 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
-const { Customer, State, Cities, Pincode, Customer_Vehilce } = require('../model/customerModel');
+const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet } = require('../model/customerModel');
 const { Vehicle_category } = require('../model/adminModel');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
-const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest,loggingRespons } = require('../middleware/apiResponse');
+const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes } = require('../middleware/apiResponse');
 
-module.exports.register = async (req, res) => {
+// module.exports.register = async (req, res) => {
+//     try {
+//         const schema = joi.object({
+//             phone_Num: joi.string().min(10).required(),
+//         });
+//         validateSchema.joiValidation(schema, req.body);
+//         const phoneNum = req.body.phone_Num;
+//         const getMobile = await Customer.findOne({ where: { phoneNum: phoneNum } });
+//         if (getMobile) {
+//             // if (getMobile && getMobile.status == 1) {
+//             //     errorResponse(
+//             //         res,
+//             //         'This Number is Already Registered'
+//             //     )
+//             // }
+//             // else {
+//                 const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+//                 const data = { phoneNum, otp }
+//                 const sendOTP = async (phoneNum, otp) => {
+//                     const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+//                     if (res.status == 200 && res.data.status == "success") {
+//                         const response = await Customer.update({ otp: otp }, { where: { phoneNum: phoneNum } });
+//                         return response
+//                     }
+//                 }
+//                 const result = await sendOTP(phoneNum, otp);
+//             console.log(otp);
+
+//                 if (result) {
+//                     successResponseWithData(res, "Otp Send Successfully",otp)
+//                 }
+//             // }
+//         }
+//         else {
+//             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+//             const data = { phoneNum, otp }
+//             console.log(otp);
+//             const sendOTP = async (phoneNum, otp) => {
+//                 const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+//                 if (res.status == 200 && res.data.status == "success") {
+//                     const response = await Customer.create(data);
+//                     return response
+//                 }
+//             }
+//             const result = await sendOTP(phoneNum, otp);
+//             if (result) {
+//                 successResponse(res, "Otp Send Successfully")
+//             }
+//         }
+//     } catch (error) {
+//         console.log('register Error', error);
+//         badRequest(res, error);
+//     }
+// }
+
+module.exports.otpVerify = async (req, res) => {
+    try {
+        const schema = joi.object({
+            otp: joi.number().min(4).required(),
+        });
+        validateSchema.joiValidation(schema, req.body);
+        const otp = req.body.otp;
+        const getUser = await Customer.findOne({
+            attributes: { exclude: ['otp', 'createDate', 'updateDate'] },
+            where: { otp: otp }
+        });
+        if (getUser) {
+            const token = jwt.sign(
+                {
+                    userId: getUser.id,
+                    phoneNum: getUser.phoneNum
+                },
+                process.env.SECRET_KEY,
+                {
+                    expiresIn: process.env.EXPRIE_TIME
+                }
+            )
+            // await Customer.update({ status: 1 }, { where: { id: getUser.id } });
+            // console.log('!!!!!!!!!!!!',getUser && getUser.status == 1 && getUser.vehicle_status == 1)
+            if (getUser && getUser.status == 1 && getUser.vehicle_status == 1) {
+                loggingRespons(
+                    res,
+                    "OTP is verify",
+                    true,
+                    token,
+                    getUser
+                )
+            }
+            else {
+                loggingRespons(
+                    res,
+                    "OTP is verify",
+                    false,
+                    token,
+                    getUser
+                )
+            }
+        }
+        else {
+            errorResponse(
+                res,
+                "Something went wrong"
+            )
+        }
+    } catch (error) {
+        console.log('otpVerify Error', error);
+        badRequest(res, error);
+    }
+}
+
+// module.exports.login = async (req, res) => {
+//     try {
+//         const schema = joi.object({
+//             phone_Num: joi.string().required(),
+//         });
+//         validateSchema.joiValidation(schema, req.body);
+//         const phoneNum = req.body.phone_Num;
+//         const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+//         const getUser = await Customer.findOne({ where: { phoneNum: phoneNum } });
+//         if (getUser) {
+//             const sendOTP = async (phoneNum, otp) => {
+//                 const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=91${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+//                 if (res.status == 200 && res.data.status == "success") {
+//                     const response = await Customer.update({ otp: otp }, { where: { id: getUser.id } });
+//                     return response
+//                 }
+//             }
+//             const result = await sendOTP(phoneNum, otp);
+//             if (result) {
+//                 successResponse(
+//                     res,
+//                     "Otp Send Successfully"
+//                 )
+//             }
+//         }
+//         else {
+//             errorResponse(
+//                 res,
+//                 "User Not Found"
+//             )
+//         }
+//     } catch (error) {
+//         console.log('login Error', error);
+//         badRequest(res, error);
+//     }
+// }
+
+module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
             phone_Num: joi.string().min(10).required(),
@@ -25,21 +172,21 @@ module.exports.register = async (req, res) => {
             //     )
             // }
             // else {
-                const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-                const data = { phoneNum, otp }
-                const sendOTP = async (phoneNum, otp) => {
-                    const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-                    if (res.status == 200 && res.data.status == "success") {
-                        const response = await Customer.update({ otp: otp }, { where: { phoneNum: phoneNum } });
-                        return response
-                    }
+            const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+            const data = { phoneNum, otp }
+            const sendOTP = async (phoneNum, otp) => {
+                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+                if (res.status == 200 && res.data.status == "success") {
+                    const response = await Customer.update({ otp: otp }, { where: { phoneNum: phoneNum } });
+                    return response
                 }
-                const result = await sendOTP(phoneNum, otp);
+            }
+            const result = await sendOTP(phoneNum, otp);
             console.log(otp);
 
-                if (result) {
-                    successResponseWithData(res, "Otp Send Successfully",otp)
-                }
+            if (result) {
+                successResponseWithData(res, "Otp Send Successfully", otp)
+            }
             // }
         }
         else {
@@ -55,7 +202,7 @@ module.exports.register = async (req, res) => {
             }
             const result = await sendOTP(phoneNum, otp);
             if (result) {
-                successResponse(res, "Otp Send Successfully")
+                successResponseWithData(res, "Otp Send Successfully", otp)
             }
         }
     } catch (error) {
@@ -64,98 +211,15 @@ module.exports.register = async (req, res) => {
     }
 }
 
-module.exports.otpVerify = async (req, res) => {
-    try {
-        const schema = joi.object({
-            otp: joi.number().min(4).required(),
-        });
-        validateSchema.joiValidation(schema, req.body);
-        const otp = req.body.otp;
-        const getUser = await Customer.findOne({ where: { otp: otp } });
-        if (getUser) {
-            const token = jwt.sign(
-                {
-                    userId: getUser.id,
-                    phoneNum: getUser.phoneNum
-                },
-                process.env.SECRET_KEY,
-                {
-                    expiresIn: process.env.EXPRIE_TIME
-                }
-            )
-            // await Customer.update({ status: 1 }, { where: { id: getUser.id } });
-            loggingRespons(
-                res,
-                "OTP is verify",
-                token
-            )
-        }
-        else {
-            errorResponse(
-                res,
-                "Something went wrong"
-            )
-        }
-    } catch (error) {
-        console.log('otpVerify Error', error);
-        badRequest(res, error);
-    }
-}
-
-module.exports.login = async (req, res) => {
-    try {
-        const schema = joi.object({
-            phone_Num: joi.string().required(),
-        });
-        validateSchema.joiValidation(schema, req.body);
-        const phoneNum = req.body.phone_Num;
-        const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-        const getUser = await Customer.findOne({ where: { phoneNum: phoneNum } });
-        if (getUser) {
-            const sendOTP = async (phoneNum, otp) => {
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=91${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-                if (res.status == 200 && res.data.status == "success") {
-                    const response = await Customer.update({ otp: otp }, { where: { id: getUser.id } });
-                    return response
-                }
-            }
-            const result = await sendOTP(phoneNum, otp);
-            if (result) {
-                successResponse(
-                    res,
-                    "Otp Send Successfully"
-                )
-            }
-        }
-        else {
-            errorResponse(
-                res,
-                "User Not Found"
-            )
-        }
-    } catch (error) {
-        console.log('login Error', error);
-        badRequest(res, error);
-    }
-}
-
 module.exports.getProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        // console.log("userId", userId);
-        // const getData = await Customer.findOne(
-        //     {
-        //         attributes: ['id', 'fullName', 'email', 'phoneNum', 'address', 'wing', 'society', 'state', 'city', 'pincode']
-        //     },
-        //     {where: {id : userId}}
-        // );
-        
         const getData = await Customer.findOne(
             {
                 attributes: ['id', 'fullName', 'email', 'phoneNum', 'address', 'wing', 'society', 'state', 'city', 'pincode'],
-                where: {id : userId}
+                where: { id: userId }
             });
-            
+
         if (getData) {
             successResponseWithData(
                 res,
@@ -180,7 +244,6 @@ module.exports.complitProfile = async (req, res) => {
         const schema = joi.object({
             fullName: joi.string().min(3).required(),
             email: joi.string().min(3).required(),
-            // fullName: joi.string().min(3).required(),
             phoneNum: joi.string().min(10).required(),
             address: joi.string().min(3).required(),
             wing: joi.string().min(3).required(),
@@ -191,6 +254,7 @@ module.exports.complitProfile = async (req, res) => {
         });
         validateSchema.joiValidation(schema, req.body);
         const userId = req.userId;
+        console.log('userId', userId)
         const updateDate = new Date();
         const status = true
         const { fullName, email, phoneNum, address, wing, society, state, city, pincode } = req.body;
@@ -198,10 +262,23 @@ module.exports.complitProfile = async (req, res) => {
         if (userId) {
             const updateData = await Customer.update(data, { where: { id: userId } });
             if (updateData) {
-                successResponse(
-                    res,
-                    "Your Profile Is Completed Successfully"
-                )
+                const vehicle_data = await Customer_Vehilce.findOne({ where: { userId: userId } });
+                if (!vehicle_data) {
+                    successCompleteRes(
+                        res,
+                        "Your Profile Is Completed Successfully",
+                        vehicle_data,
+                        false
+                    )
+                }
+                else {
+                    successCompleteRes(
+                        res,
+                        "Your Profile Is Completed Successfully",
+                        vehicle_data,
+                        true
+                    )
+                }
             }
         }
         else {
@@ -222,10 +299,9 @@ module.exports.getVehilceCategory = async (req, res) => {
         const getCategory = await Vehicle_category.findAll({
             attributes: [
                 'id', 'title', 'vehicle_type',
-                // [sequelize.literal(`CONCAT('${process.env.IMAGE_BASE_URl}public/image/', images)`), 'images']
                 [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',images)"), 'images']
             ],
-            where: { vehicle_type : vehicleType }
+            where: { vehicle_type: vehicleType }
         });
 
         if (getCategory) {
@@ -247,37 +323,31 @@ module.exports.getVehilceCategory = async (req, res) => {
     }
 }
 
-module.exports.getVehicleType=async(req, res)=>{
+module.exports.getVehicleType = async (req, res) => {
     try {
         const cate = await Vehicle_category.findAll({
-            attributes:[
-                
-                sequelize.literal('distinct `vehicle_type`'),'vehicle_type'
+            attributes: [
+
+                sequelize.literal('distinct `vehicle_type`'), 'vehicle_type'
             ],
         })
 
         if (cate) {
-            // const category = cate.map((e)=>{
-            //     return {
-            //         id : uuid.v1(),
-            //         category : e.vehicle_type,
-            //     }
-            // })
             res.status(200).json({
-                status : true,
-                category : cate
+                status: true,
+                category: cate
             });
         } else {
             res.status(200).json({
-                status : false,
-                message : "vehicle category is not available."
+                status: false,
+                message: "vehicle category is not available."
             });
         }
     } catch (error) {
         console.log("error", error);
         res.status(400).json({
-            status : false,
-            error : error
+            status: false,
+            error: error
         })
     }
 }
@@ -356,7 +426,7 @@ module.exports.getPincode = async (req, res) => {
     }
 }
 
-module.exports.addVehicle = async(req, res) => {
+module.exports.addVehicle = async (req, res) => {
     try {
         const schema = joi.object({
             vehicle_type: joi.string().required(),
@@ -365,44 +435,203 @@ module.exports.addVehicle = async(req, res) => {
             vehicle_color: joi.string().required(),
             license_num: joi.string().required(),
             parking_num: joi.string().required(),
-
+            image: joi.string().required()
         });
         validateSchema.joiValidation(schema, req.body);
-        const { vehicle_type, vehicle_title, vehicle_model	, vehicle_color	, license_num, parking_num } = req.body;
-        const data = { vehicle_type	, vehicle_title, vehicle_model	, vehicle_color	, license_num, parking_num }
-        if (req.files) {
-            const image = req.files.image;
-            const imageName = image.name;
-            const imageExtantion = imageName.split('.').pop();
-            const imageNewName = uuid.v1() + '.' + imageExtantion;;
-            const uploadPath = 'public/vehilceImage/' + imageNewName;
-            image.mv(uploadPath, async (error, result) => {
-                if (error) {
-                    console.log('error', error);
-                }
-                else {
-                    data.image = imageNewName
-                    const addVehilce = await Customer_Vehilce.create(data);
-                    if (addVehilce) {
-                        successResponse(
-                            res,
-                            'Vehilce Data Added Successfuly',
-                        )
-                    }
-                }
-            });
+        const userId = req.userId;
+        const status = true
+        const { vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body;
+        const data = { userId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
+        // if (req.files) {
+        //     const image = req.files.image;
+        //     const imageName = image.name;
+        //     const imageExtantion = imageName.split('.').pop();
+        //     const imageNewName = uuid.v1() + '.' + imageExtantion;;
+        //     const uploadPath = 'public/vehilceImage/' + imageNewName;
+        //     image.mv(uploadPath, async (error, result) => {
+        //         if (error) {
+        //             console.log('error', error);
+        //         }
+        //         else {
+        //             data.image = imageNewName
+        //             const addVehilce = await Customer_Vehilce.create(data);
+        //             if (addVehilce) {
+        //                 successResponse(
+        //                     res,
+        //                     'Vehilce Data Added Successfuly',
+        //                 )
+        //             }
+        //         }
+        //     });
+        // }
+        // else {
+        const addVehilce = await Customer_Vehilce.create(data);
+        if (addVehilce) {
+            await Customer.update({ vehicle_status: true }, { where: { id: userId } })
+            successResponse(
+                res,
+                'Vehilce Data Added Successfuly',
+            )
+        }
+        // }
+    } catch (error) {
+        console.log('addVehilcle Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.vehicleList = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const vehicle_list = await Customer_Vehilce.findAll({ where: { userId: userId } });
+        if (vehicle_list) {
+            successResponseWithData(
+                res,
+                "Vehicle List",
+                vehicle_list
+            )
         }
         else {
-            const addVehilce = await Customer_Vehilce.create(data);
-            if (addVehilce) {
-                successResponse(
+            notFoundResponse(
+                res,
+                "Vehicle not found"
+            )
+        }
+    } catch (error) {
+        console.log('vehicleList Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.getVehicleById = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const vehicleId = req.params.vehicleId;
+        if (vehicleId) {
+            const vehicle = await Customer_Vehilce.findOne({ where: { id: vehicleId, userId: userId } });
+            if (vehicle) {
+                successResponseWithData(
                     res,
-                    'Vehilce Data Added Successfuly',
+                    "Vehicle Finded",
+                    vehicle
                 )
             }
         }
+        else {
+            errorResponse(res, "vehicle id is required");
+        }
     } catch (error) {
-        console.log('addVehilcle Error', error);
+        console.log('getVehicleById Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.updateVehicle = async (req, res) => {
+    try {
+        const schema = joi.object({
+            vehicleId: joi.number().required(),
+            vehicle_type: joi.string().required(),
+            vehicle_title: joi.string().required(),
+            vehicle_model: joi.string().required(),
+            vehicle_color: joi.string().required(),
+            license_num: joi.string().required(),
+            parking_num: joi.string().required(),
+            image: joi.string().required()
+        });
+        validateSchema.joiValidation(schema, req.body)
+        const userId = req.userId;
+        const { vehicleId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body
+        const data = { vehicleId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
+        const upVehicle = await Customer_Vehilce.update(data, { where: { id: vehicleId, userId: userId } });
+        if (upVehicle) {
+            successResponse(
+                res,
+                "Vehicle Updated Successfully"
+            )
+        }
+        else {
+            errorResponse(res, "Somthing want Wrong");
+        }
+    } catch (error) {
+        console.log('updateVehicle Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.deleteVehicle = async (req, res) => {
+    try {
+        const vehicleId = req.params.vehicleId;
+        if (vehicleId) {
+            const destroy = await Customer_Vehilce.destroy({ where: { id: vehicleId } });
+            if (destroy) {
+                successResponse(res, "Vehicle Deleted Successfully");
+            }
+        }
+        else {
+            errorResponse(res, "vehicle id is required");
+        }
+    } catch (error) {
+        console.log('deleteVehicle Error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.addWallet = async (req, res) => {
+    try {
+        const schema = joi.object({
+            amount: joi.number().required(),
+            coupon_code: joi.string().required(),
+            payment_method: joi.string().required(),
+        });
+        validateSchema.joiValidation(schema, req.body);
+        const userId = req.userId;
+        const { amount, coupon_code, payment_method } = req.body;
+        const paymentData = { userId, amount, coupon_code, payment_method }
+        const addpayment = await Wallet.create(paymentData);
+        if (addpayment) {
+            successResponseWithData(
+                res,
+                "Money will be added in wallet"
+            )
+        }
+        else {
+            errorResponse(
+                res,
+                "Somthing Want Wrong",
+            )
+        }
+    } catch (error) {
+        console.log('addWallet Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.getWallet = async (req, res) => {
+    try {
+        const userId = req.userId;
+        if (userId) {
+            const walletData = await Wallet.findAll({ where: { userId: userId } });
+            if (walletData) {
+                successResponseWithData(
+                    res,
+                    "Transaction History",
+                    walletData
+                )
+            }
+        }
+        else{
+            errorResponse(
+                res,
+                "Somthing Want Wrong"
+            )
+        }
+    } catch (error) {
+        console.log('getWallet Error', error);
         badRequest(res, error);
     }
 }
