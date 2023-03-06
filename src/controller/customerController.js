@@ -2,12 +2,13 @@ const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
 const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet } = require('../model/customerModel');
 const { Vehicle_category } = require('../model/adminModel');
+const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
-const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes } = require('../middleware/apiResponse');
+const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes,velideUser } = require('../middleware/apiResponse');
 
 // module.exports.register = async (req, res) => {
 //     try {
@@ -67,50 +68,61 @@ const { successResponseWithData, errorResponse, successResponse, notFoundRespons
 module.exports.otpVerify = async (req, res) => {
     try {
         const schema = joi.object({
+            phoneNum: joi.string().min(10).required(),
             otp: joi.number().min(4).required(),
+            fcm_token: joi.string().required(),
+            device_type: joi.number().required(),
         });
         validateSchema.joiValidation(schema, req.body);
+        const { fcm_token, device_type } = req.body;
         const otp = req.body.otp;
+        const phoneNum = req.body.phoneNum;
+        const data = { fcm_token, device_type }
         const getUser = await Customer.findOne({
-            attributes: { exclude: ['otp', 'createDate', 'updateDate'] },
-            where: { otp: otp }
+            attributes: { exclude: [ 'createDate', 'updateDate'] },
+            where: { phoneNum: phoneNum }
         });
         if (getUser) {
-            const token = jwt.sign(
-                {
-                    userId: getUser.id,
-                    phoneNum: getUser.phoneNum
-                },
-                process.env.SECRET_KEY,
-                {
-                    expiresIn: process.env.EXPRIE_TIME
-                }
-            )
-            // await Customer.update({ status: 1 }, { where: { id: getUser.id } });
-            // console.log('!!!!!!!!!!!!',getUser && getUser.status == 1 && getUser.vehicle_status == 1)
-            if (getUser && getUser.status == 1 && getUser.vehicle_status == 1) {
-                loggingRespons(
-                    res,
-                    "OTP is verify",
-                    true,
-                    token,
-                    getUser
+            console.log(getUser.otp == otp)
+            if (getUser.otp == otp) {
+                await Customer.update(data, { where: { id: getUser.id } })
+                const token = jwt.sign(
+                    {
+                        userId: getUser.id,
+                        phoneNum: getUser.phoneNum,
+                    },
+                    process.env.SECRET_KEY,
+                    {
+                        expiresIn: process.env.EXPRIE_TIME
+                    }
                 )
+                if (getUser && getUser.status == 1) {
+                    loggingRespons(
+                        res,
+                        "OTP is verify",
+                        true,
+                        token,
+                        getUser
+                    )
+                }
+                else {
+                    loggingRespons(
+                        res,
+                        "OTP is verify",
+                        false,
+                        token,
+                        getUser
+                    )
+                }
             }
             else {
-                loggingRespons(
-                    res,
-                    "OTP is verify",
-                    false,
-                    token,
-                    getUser
-                )
+                notFoundResponse(res, "Invalid otp");
             }
         }
         else {
             errorResponse(
                 res,
-                "Something went wrong"
+                "Mobile number not exist"
             )
         }
     } catch (error) {
@@ -165,13 +177,6 @@ module.exports.login = async (req, res) => {
         const phoneNum = req.body.phone_Num;
         const getMobile = await Customer.findOne({ where: { phoneNum: phoneNum } });
         if (getMobile) {
-            // if (getMobile && getMobile.status == 1) {
-            //     errorResponse(
-            //         res,
-            //         'This Number is Already Registered'
-            //     )
-            // }
-            // else {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
             const data = { phoneNum, otp }
             const sendOTP = async (phoneNum, otp) => {
@@ -187,7 +192,6 @@ module.exports.login = async (req, res) => {
             if (result) {
                 successResponseWithData(res, "Otp Send Successfully", otp)
             }
-            // }
         }
         else {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
@@ -216,7 +220,10 @@ module.exports.getProfile = async (req, res) => {
         const userId = req.userId;
         const getData = await Customer.findOne(
             {
-                attributes: ['id', 'fullName', 'email', 'phoneNum', 'address', 'wing', 'society', 'state', 'city', 'pincode'],
+                attributes: [
+                    'id', 'fullName', 'email', 'phoneNum', 'address', 'wing', 'society', 'state', 'city', 'pincode',
+                    [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'customerImg/' + "',profile_img)"), 'profile_img']
+                ],
                 where: { id: userId }
             });
 
@@ -228,10 +235,44 @@ module.exports.getProfile = async (req, res) => {
             )
         }
         else {
-            errorResponse(
+            notFoundResponse(
                 res,
-                "Something went wrong"
+                "Data not found"
             )
+        }
+    } catch (error) {
+        console.log('getProfile Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.uploadProfile = (req,res) => {
+    try {
+        const userId = req.userId;
+        if(req.files && req.files.profile){
+            const image = req.files.profile;
+            const imageName = image.name;
+            const imageExtantion = imageName.split('.').pop();
+            const imageNewName = uuid.v1() + '.' + imageExtantion;;
+            const uploadPath = 'public/customerImg/' + imageNewName;
+            image.mv(uploadPath, async (error, result) => {
+                if (error) {
+                    console.log('error', error);
+                }
+                else {
+                    const addProfile = await Customer.update({profile_img:imageNewName},{where:{id:userId}});;
+                    if (addProfile) {
+                        successResponse(
+                            res,
+                            'Profile Added Successfuly',
+                        )
+                    }
+                }
+            });
+        }
+        else{
+            res.json({'message':'profile is required'});
         }
     } catch (error) {
         console.log('getProfile Error', error);
@@ -254,7 +295,6 @@ module.exports.complitProfile = async (req, res) => {
         });
         validateSchema.joiValidation(schema, req.body);
         const userId = req.userId;
-        console.log('userId', userId)
         const updateDate = new Date();
         const status = true
         const { fullName, email, phoneNum, address, wing, society, state, city, pincode } = req.body;
@@ -473,6 +513,9 @@ module.exports.addVehicle = async (req, res) => {
                 'Vehilce Data Added Successfuly',
             )
         }
+        else {
+            errorResponse(res, "Somthing Want Wrong")
+        }
         // }
     } catch (error) {
         console.log('addVehilcle Error', error);
@@ -516,6 +559,12 @@ module.exports.getVehicleById = async (req, res) => {
                     res,
                     "Vehicle Finded",
                     vehicle
+                )
+            }
+            else {
+                notFoundResponse(
+                    res,
+                    "Vehicle not found"
                 )
             }
         }
@@ -570,6 +619,12 @@ module.exports.deleteVehicle = async (req, res) => {
             if (destroy) {
                 successResponse(res, "Vehicle Deleted Successfully");
             }
+            else {
+                errorResponse(
+                    res,
+                    "Somthing Want Wrong"
+                )
+            }
         }
         else {
             errorResponse(res, "vehicle id is required");
@@ -623,8 +678,14 @@ module.exports.getWallet = async (req, res) => {
                     walletData
                 )
             }
+            else {
+                notFoundResponse(
+                    res,
+                    "Data Not Found"
+                )
+            }
         }
-        else{
+        else {
             errorResponse(
                 res,
                 "Somthing Want Wrong"
@@ -633,5 +694,67 @@ module.exports.getWallet = async (req, res) => {
     } catch (error) {
         console.log('getWallet Error', error);
         badRequest(res, error);
+    }
+}
+
+
+module.exports.walletBalance = async (req, res) => {
+    try {
+        const userId = req.userId;
+        if (userId) {
+            const totleBal = await Wallet.sum('amount', { where: { userId: userId } });
+            if (totleBal) {
+                successResponseWithData(
+                    res,
+                    "Totle Amount",
+                    totleBal
+                )
+            }
+            else {
+                notFoundResponse(
+                    res,
+                    "Data Not Found"
+                )
+            }
+        }
+    } catch (error) {
+        console.log('getWallet Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.my_services = async (req, res) => {
+    try {
+        const userId = req.userId;
+        if (userId) {
+            const myService = await Washer_service.findAll({
+                attributes: [
+                    'id', 'userId', 'date', 'time',
+                    [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'serviceImg/' + "',image)"), 'image']
+                ],
+                where: {
+                    userId: userId
+                }
+            });
+            if (myService) {
+                successResponseWithData(
+                    res,
+                    "My Services",
+                    myService
+                )
+            }
+            else {
+                notFoundResponse(
+                    res,
+                    "Data Not Found"
+                )
+            }
+        }
+        else {
+            errorResponse(res, "Somthing want Wrong");
+        }
+    } catch (error) {
+
     }
 }

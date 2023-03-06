@@ -13,11 +13,19 @@ const Customer = sequelize.define('users', {
     },
     phoneNum : {
         type : DataTypes.STRING,
-        allowNull : false
+        allowNull : true
     },
     otp : {
         type : DataTypes.INTEGER,
-        allowNull : false
+        allowNull : true
+    },
+    fcm_token : {
+        type : DataTypes.STRING,
+        allowNull : true
+    },
+    device_type : {
+        type : DataTypes.STRING,
+        allowNull : true
     },
     status : {
         type : DataTypes.STRING,
@@ -49,6 +57,10 @@ const Customer = sequelize.define('users', {
     },
     pincode : {
         type : DataTypes.INTEGER,
+        allowNull: true
+    },
+    profile_img : {
+        type : DataTypes.STRING,
         allowNull: true
     },
     createDate : {

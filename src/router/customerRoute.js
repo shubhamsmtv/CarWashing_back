@@ -20,4 +20,7 @@ app.post('/updateVehicle', jwtToken.validateToken, customerController.updateVehi
 app.delete('/deleteVehicle/:vehicleId',jwtToken.validateToken,customerController.deleteVehicle);
 app.post('/addWallet',jwtToken.validateToken, customerController.addWallet);
 app.get('/walletHistory', jwtToken.validateToken, customerController.getWallet);
+app.get('/walletBalance', jwtToken.validateToken, customerController.walletBalance);
+app.get('/myServices', jwtToken.validateToken, customerController.my_services);
+app.post('/uploadProfile', jwtToken.validateToken, customerController.uploadProfile);
 module.exports = app;

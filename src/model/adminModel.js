@@ -1,4 +1,3 @@
-const { Model, DATE } = require('sequelize');
 const { sequelize, Sequelize: { DataTypes } } = require('../helper/db');
 
 

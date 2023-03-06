@@ -28,6 +28,15 @@ module.exports.loggingRespons = (res,msg,result,token,data) => {
 	return res.status(200).json(response);
 }
 
+module.exports.adminLoggingRespons = (res,msg,token) => {
+    const response = {
+		status: true,
+		message: msg,
+		token:token,
+	};
+	return res.status(200).json(response);
+}
+
 module.exports.successResponse = (res,msg) => {
     const response = {
 		status: true,
@@ -58,4 +67,12 @@ module.exports.badRequest = (res,error) => {
 		error: error,
 	};
     return res.status(404).json(response);
+}
+
+module.exports.velideUser = (res,key) => {
+    const response = {
+		status: true,
+		isvalid : key,
+	};
+    return res.status(200).json(response);
 }
