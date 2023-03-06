@@ -15,7 +15,7 @@ app.get('/service_providers_list', authValidation.validateToken, adminController
 app.get('/service_providers_ById/:id', authValidation.validateToken, adminController.service_Providers_ById);
 app.post('/update_service_providers', authValidation.validateToken, adminController.update_service_providers);
 app.delete('/delete_service_providers/:id', authValidation.validateToken, adminController.delete_service_providers)
-
+app.get('/schedule_list', authValidation.validateToken, adminController.schedule_list);
 
 // app.get('/vehicles',authValidation.validateToken, adminController.vehicles);
 

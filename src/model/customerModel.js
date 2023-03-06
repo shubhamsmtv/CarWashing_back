@@ -186,11 +186,40 @@ const Wallet = sequelize.define('customer_wallet',{
 },{tableName:"customer_wallet"});
 
 
+const Schedule_vehicle = sequelize.define('schedule_vehicle',{
+    userId : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    address : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    vehicle_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    schedule_date : {
+        type : DataTypes.DATE,
+        allowNull : false
+    },
+    createDate : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    }
+},{tableName:'schedule_vehicle'});
+
+
+
+Schedule_vehicle.belongsTo(Customer_Vehilce,{foreignKey: 'vehicle_id'});
+Customer_Vehilce.hasMany(Schedule_vehicle,{foreignKey : 'id'});
+
 module.exports = {
     Customer,
     State,
     Cities,
     Pincode,
     Customer_Vehilce,
-    Wallet
+    Wallet,
+    Schedule_vehicle
 }

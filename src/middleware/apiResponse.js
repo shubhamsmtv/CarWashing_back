@@ -66,7 +66,7 @@ module.exports.badRequest = (res,error) => {
 		status: false,
 		error: error,
 	};
-    return res.status(404).json(response);
+    return res.status(400).json(response);
 }
 
 module.exports.velideUser = (res,key) => {

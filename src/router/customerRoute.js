@@ -23,4 +23,5 @@ app.get('/walletHistory', jwtToken.validateToken, customerController.getWallet);
 app.get('/walletBalance', jwtToken.validateToken, customerController.walletBalance);
 app.get('/myServices', jwtToken.validateToken, customerController.my_services);
 app.post('/uploadProfile', jwtToken.validateToken, customerController.uploadProfile);
+app.post('/setSchedule', jwtToken.validateToken, customerController.setschedule)
 module.exports = app;

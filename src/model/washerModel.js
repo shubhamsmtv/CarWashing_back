@@ -21,7 +21,7 @@ const Washer_service = sequelize.define('washer_services',{
 },{tableName : 'washer_services'});
 
 
-const Service_Providers = sequelize.define("Service_Providers",{
+const Service_Providers = sequelize.define("service_providers",{
     fullName:{
         type:DataTypes.STRING,
         allowNull: true
@@ -70,7 +70,7 @@ const Service_Providers = sequelize.define("Service_Providers",{
         type:DataTypes.STRING,
         allowNull: true
     },
-},{tableName:'Service_Providers'});
+},{tableName:'service_providers'});
 
 
 

@@ -1,6 +1,6 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
-const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet } = require('../model/customerModel');
+const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle } = require('../model/customerModel');
 const { Vehicle_category } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
@@ -8,7 +8,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
-const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes,velideUser } = require('../middleware/apiResponse');
+const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes, velideUser } = require('../middleware/apiResponse');
 
 // module.exports.register = async (req, res) => {
 //     try {
@@ -79,7 +79,7 @@ module.exports.otpVerify = async (req, res) => {
         const phoneNum = req.body.phoneNum;
         const data = { fcm_token, device_type }
         const getUser = await Customer.findOne({
-            attributes: { exclude: [ 'createDate', 'updateDate'] },
+            attributes: { exclude: ['createDate', 'updateDate'] },
             where: { phoneNum: phoneNum }
         });
         if (getUser) {
@@ -247,10 +247,10 @@ module.exports.getProfile = async (req, res) => {
 }
 
 
-module.exports.uploadProfile = (req,res) => {
+module.exports.uploadProfile = (req, res) => {
     try {
         const userId = req.userId;
-        if(req.files && req.files.profile){
+        if (req.files && req.files.profile) {
             const image = req.files.profile;
             const imageName = image.name;
             const imageExtantion = imageName.split('.').pop();
@@ -261,7 +261,7 @@ module.exports.uploadProfile = (req,res) => {
                     console.log('error', error);
                 }
                 else {
-                    const addProfile = await Customer.update({profile_img:imageNewName},{where:{id:userId}});;
+                    const addProfile = await Customer.update({ profile_img: imageNewName }, { where: { id: userId } });;
                     if (addProfile) {
                         successResponse(
                             res,
@@ -271,8 +271,8 @@ module.exports.uploadProfile = (req,res) => {
                 }
             });
         }
-        else{
-            res.json({'message':'profile is required'});
+        else {
+            res.json({ 'message': 'profile is required' });
         }
     } catch (error) {
         console.log('getProfile Error', error);
@@ -479,43 +479,52 @@ module.exports.addVehicle = async (req, res) => {
         });
         validateSchema.joiValidation(schema, req.body);
         const userId = req.userId;
-        const status = true
-        const { vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body;
-        const data = { userId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
-        // if (req.files) {
-        //     const image = req.files.image;
-        //     const imageName = image.name;
-        //     const imageExtantion = imageName.split('.').pop();
-        //     const imageNewName = uuid.v1() + '.' + imageExtantion;;
-        //     const uploadPath = 'public/vehilceImage/' + imageNewName;
-        //     image.mv(uploadPath, async (error, result) => {
-        //         if (error) {
-        //             console.log('error', error);
-        //         }
-        //         else {
-        //             data.image = imageNewName
-        //             const addVehilce = await Customer_Vehilce.create(data);
-        //             if (addVehilce) {
-        //                 successResponse(
-        //                     res,
-        //                     'Vehilce Data Added Successfuly',
-        //                 )
-        //             }
-        //         }
-        //     });
-        // }
-        // else {
-        const addVehilce = await Customer_Vehilce.create(data);
-        if (addVehilce) {
-            await Customer.update({ vehicle_status: true }, { where: { id: userId } })
-            successResponse(
-                res,
-                'Vehilce Data Added Successfuly',
-            )
+        const getVehicle = await Customer_Vehilce.findAndCountAll({ where: { userId: userId } });
+        console.log('getVehicle', getVehicle)
+        if (getVehicle.count < 4) {
+            const status = true
+            const { vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body;
+            const data = { userId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
+            // if (req.files) {
+            //     const image = req.files.image;
+            //     const imageName = image.name;
+            //     const imageExtantion = imageName.split('.').pop();
+            //     const imageNewName = uuid.v1() + '.' + imageExtantion;;
+            //     const uploadPath = 'public/vehilceImage/' + imageNewName;
+            //     image.mv(uploadPath, async (error, result) => {
+            //         if (error) {
+            //             console.log('error', error);
+            //         }
+            //         else {
+            //             data.image = imageNewName
+            //             const addVehilce = await Customer_Vehilce.create(data);
+            //             if (addVehilce) {
+            //                 successResponse(
+            //                     res,
+            //                     'Vehilce Data Added Successfuly',
+            //                 )
+            //             }
+            //         }
+            //     });
+            // }
+            // else {
+            const addVehilce = await Customer_Vehilce.create(data);
+            if (addVehilce) {
+                await Customer.update({ vehicle_status: true }, { where: { id: userId } })
+                successResponse(
+                    res,
+                    'Vehilce Data Added Successfuly',
+                )
+            }
+            else {
+                errorResponse(res, "Something Went Wrong")
+            }
         }
         else {
-            errorResponse(res, "Somthing Want Wrong")
+            errorResponse(res,"You have add only four vehicle");
         }
+        return false
+
         // }
     } catch (error) {
         console.log('addVehilcle Error', error);
@@ -602,7 +611,7 @@ module.exports.updateVehicle = async (req, res) => {
             )
         }
         else {
-            errorResponse(res, "Somthing want Wrong");
+            errorResponse(res, "Something Went Wrong");
         }
     } catch (error) {
         console.log('updateVehicle Error', error);
@@ -622,7 +631,7 @@ module.exports.deleteVehicle = async (req, res) => {
             else {
                 errorResponse(
                     res,
-                    "Somthing Want Wrong"
+                    "Something Went Wrong"
                 )
             }
         }
@@ -656,7 +665,7 @@ module.exports.addWallet = async (req, res) => {
         else {
             errorResponse(
                 res,
-                "Somthing Want Wrong",
+                "Something Went Wrong",
             )
         }
     } catch (error) {
@@ -670,7 +679,12 @@ module.exports.getWallet = async (req, res) => {
     try {
         const userId = req.userId;
         if (userId) {
-            const walletData = await Wallet.findAll({ where: { userId: userId } });
+            const walletData = await Wallet.findAll({
+                where: {
+                    userId: userId
+                },
+                order: [['createDate', 'DESC']],
+            });
             if (walletData) {
                 successResponseWithData(
                     res,
@@ -688,7 +702,7 @@ module.exports.getWallet = async (req, res) => {
         else {
             errorResponse(
                 res,
-                "Somthing Want Wrong"
+                "Something Went Wrong"
             )
         }
     } catch (error) {
@@ -752,9 +766,37 @@ module.exports.my_services = async (req, res) => {
             }
         }
         else {
-            errorResponse(res, "Somthing want Wrong");
+            errorResponse(res, "Something Went Wrong");
         }
     } catch (error) {
+        console.log('my_services Error', error);
+        badRequest(res, error);
+    }
+}
 
+
+
+
+module.exports.setschedule = async (req, res) => {
+    try {
+        const schema = joi.object({
+            schedule_date: joi.date().required(),
+            address: joi.string().required(),
+            vehicle_id: joi.string().required()
+        });
+        validateSchema.joiValidation(schema, req.body);
+        const userId = req.userId;
+        const { schedule_date, address, vehicle_id } = req.body;
+        const data = { userId, schedule_date, address, vehicle_id };
+        const createData = await Schedule_vehicle.create(data);
+        if (createData) {
+            successResponse(res, "Vehicle Schedule Added Successfully");
+        }
+        else {
+            errorResponse(res, "Something Went Wrong")
+        }
+    } catch (error) {
+        console.log('setschedule Error', error);
+        badRequest(res, error);
     }
 }

@@ -1,6 +1,6 @@
 const uuid = require('uuid');
 const { Vehicle_category, Admin } = require('../model/adminModel');
-const { Customer, Customer_Vehilce } = require('../model/customerModel');
+const { Customer, Schedule_vehicle, Customer_Vehilce } = require('../model/customerModel');
 const { Service_Providers } = require('../model/washerModel');
 const joi = require('joi');
 const validationJoi = require('../helper/joiValidation');
@@ -204,7 +204,7 @@ module.exports.addCustomer = async (req, res) => {
             )
         }
         else {
-            errorResponse(res, "Somthing Want Wrong");
+            errorResponse(res, "Something Went Wrong");
         }
     } catch (error) {
         console.log('addCustomer Error', error);
@@ -396,7 +396,7 @@ module.exports.delete_service_providers = async (req, res) => {
             res.json({ 'message': 'id is required' });
         }
     } catch (error) {
-        console.log('update_service_providers Error', error);
+        console.log('delete_service_providers Error', error);
         badRequest(res, error);
     }
 }
@@ -425,3 +425,25 @@ module.exports.delete_service_providers = async (req, res) => {
 //         badRequest(res,error);
 //     }
 // }
+
+
+module.exports.schedule_list = async(req,res) => {
+    try {
+        const scheduleListData = await Schedule_vehicle.findAll(
+            {include: [Customer_Vehilce]}
+        );
+        if(scheduleListData){
+            successResponseWithData(
+                res,
+                "Vehicle schedule List",
+                scheduleListData
+            );
+        }
+        else{
+            notFoundResponse(res,"Data Not Found");
+        }
+    } catch (error) {
+        console.log('schedule_list Error', error);
+        badRequest(res, error);
+    }
+}
