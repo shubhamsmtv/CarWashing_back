@@ -1,28 +1,36 @@
-const { sequelize, Sequelize: { DataTypes } } = require('../helper/db');
+const { sequelize,Sequelize, Sequelize: { DataTypes } } = require('../helper/db');
+const {Schedule_vehicle} = require('../model/customerModel');
 
-
-const Washer_service = sequelize.define('washer_services',{
-    userId : {
+const Washer_service = sequelize.define('washer_service_images',{
+    schedule_id : {
         type:DataTypes.INTEGER,
         allowNull: false
     },
-    date:{
-        type:DataTypes.DATE,
-        allowNull: false
-    },
-    time:{
-        type:DataTypes.STRING,
+    status:{
+        type:DataTypes.INTEGER,
         allowNull: false
     },
     image:{
         type:DataTypes.STRING,
         allowNull: false
-    }
-},{tableName : 'washer_services'});
+    },
+    feedback:{
+        type:DataTypes.STRING,
+        allowNull: true
+    },
+    created_at:{
+        type:DataTypes.DATE,
+        defaultValue : new Date()
+    },
+    updated_at:{
+        type:DataTypes.DATE,
+        defaultValue : new Date()
+    },
+},{tableName : 'washer_service_images'});
 
 
-const Service_Providers = sequelize.define("service_providers",{
-    fullName:{
+const Service_Providers = sequelize.define("washers",{
+    full_name:{
         type:DataTypes.STRING,
         allowNull: true
     },
@@ -30,7 +38,7 @@ const Service_Providers = sequelize.define("service_providers",{
         type:DataTypes.STRING,
         allowNull: true
     },
-    phoneNum:{
+    phone_num:{
         type:DataTypes.STRING,
         allowNull: true
     },
@@ -38,7 +46,7 @@ const Service_Providers = sequelize.define("service_providers",{
         type:DataTypes.NUMBER,
         allowNull: true
     },
-    Pro_status:{
+    profile_status:{
         type:DataTypes.BOOLEAN,
         allowNull: true
     },
@@ -62,21 +70,29 @@ const Service_Providers = sequelize.define("service_providers",{
         type:DataTypes.STRING,
         allowNull: true
     },
-    createDate:{
+    created_at:{
         type:DataTypes.STRING,
         allowNull: true
     },
-    updateDate:{
+    updated_at:{
         type:DataTypes.STRING,
         allowNull: true
     },
-},{tableName:'service_providers'});
+},{tableName:'washers'});
 
 
+// Washer_service.hasMany(Schedule_vehicle, {
+//     foreignKey: {
+//       name: 'id',
+//       allowNull: false,
+//     },
+//     Washer_service : 'schedul_id',
+//   })
 
-
+// Washer_service.belongsTo(Schedule_vehicle,{foreignKey:'id'});
+// Schedule_vehicle.hasMany(Washer_service,{foreignKey:'schedul_id'});
 
 module.exports = {
-    Washer_service,
+    Washer_service, 
     Service_Providers
 }

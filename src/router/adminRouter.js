@@ -16,8 +16,9 @@ app.get('/service_providers_ById/:id', authValidation.validateToken, adminContro
 app.post('/update_service_providers', authValidation.validateToken, adminController.update_service_providers);
 app.delete('/delete_service_providers/:id', authValidation.validateToken, adminController.delete_service_providers)
 app.get('/schedule_list', authValidation.validateToken, adminController.schedule_list);
-
+app.post('/assignTask', authValidation.validateToken, adminController.assignTask);
 // app.get('/vehicles',authValidation.validateToken, adminController.vehicles);
+app.get('/dashboard', authValidation.validateToken, adminController.dashboard);
 
 module.exports = app;
 

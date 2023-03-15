@@ -1,5 +1,5 @@
 const { sequelize, Sequelize: { DataTypes } } = require('../helper/db');
-
+const {Schedule_vehicle,Customer_Vehilce} = require('../model/customerModel');
 
 const Vehicle_category = sequelize.define('vehicle_category', {
     title: {
@@ -14,11 +14,11 @@ const Vehicle_category = sequelize.define('vehicle_category', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    createDate: {
+    created_at: {
         type: DataTypes.DATE,
         allowNull: new Date()
     },
-    updateDate: {
+    updated_at: {
         type: DataTypes.DATE,
         allowNull: new Date()
     },
@@ -38,13 +38,44 @@ const Admin = sequelize.define('admin',{
         type: DataTypes.STRING,
         allowNull: false
     },
-    createDate: {
+    created_at: {
         type: DataTypes.DATE,
         allowNull: new Date()
-    },
+    }
 },{tableName:'admin'});
+
+const Washer_task = sequelize.define('washer_assign_task',{
+    schedul_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    washer_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    status : {
+        type : DataTypes.STRING,
+        allowNull : true
+    },
+    comment : {
+        type : DataTypes.STRING,
+        allowNull : true
+    },
+    created_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+},{tableName:'washer_assign_task'});
+
+Washer_task.belongsTo(Schedule_vehicle,{foreignKey: 'schedul_id'});
+Schedule_vehicle.hasMany(Washer_task,{foreignKey : 'id'});
 
 module.exports = {
     Vehicle_category,
-    Admin
+    Admin,
+    Washer_task
 }

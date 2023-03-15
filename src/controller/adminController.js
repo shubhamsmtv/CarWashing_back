@@ -1,5 +1,5 @@
 const uuid = require('uuid');
-const { Vehicle_category, Admin } = require('../model/adminModel');
+const { Vehicle_category, Admin, Washer_task } = require('../model/adminModel');
 const { Customer, Schedule_vehicle, Customer_Vehilce } = require('../model/customerModel');
 const { Service_Providers } = require('../model/washerModel');
 const joi = require('joi');
@@ -83,7 +83,7 @@ module.exports.vehicleCategory = (req, res) => {
         const imageExtantion = imageName.split('.').pop();
         const images = uuid.v1() + '.' + imageExtantion;
         const data = { title, vehicle_type, images }
-        const uploadPath = 'public/upImage/' + images;
+        const uploadPath = 'public/vehilceImage/' + images;
         console.log('uploadPath', uploadPath)
         image.mv(uploadPath, async (error) => {
             if (error) {
@@ -150,21 +150,35 @@ module.exports.customerEdit = async (req, res) => {
 
 module.exports.updateCustomer = async (req, res) => {
     try {
-        const schema = joi.object({
-            customerId: joi.number().required(),
-            fullName: joi.string().required(),
-            email: joi.string().email().required(),
-            phoneNum: joi.string().required(),
-            address: joi.string().required(),
-            wing: joi.string().required(),
-            society: joi.string().required(),
-            state: joi.string().required(),
-            city: joi.string().required(),
-            pincode: joi.string().required(),
-        });
-        validationJoi.joiValidation(schema, req.body);
-        const { customerId, fullName, email, phoneNum, address, wing, society, state, city, pincode } = req.body;
-        const data = { customerId, fullName, email, phoneNum, address, wing, society, state, city, pincode };
+        const data = {};
+        if (req.body.fullName) {
+            data.fullName = req.body.fullName;
+        }
+        if (req.body.email) {
+            data.email = req.body.email;
+        }
+        if (req.body.phone_num) {
+            data.phone_num = req.body.phone_num;
+        }
+        if (req.body.address) {
+            data.address = req.body.address;
+        }
+        if (req.body.wing) {
+            data.wing = req.body.wing;
+        }
+        if (req.body.society) {
+            data.society = req.body.society;
+        }
+        if (req.body.state) {
+            data.state = req.body.state;
+        }
+        if (req.body.city) {
+            data.city = req.body.city;
+        }
+        if (req.body.pincode) {
+            data.pincode = req.body.pincode;
+        }
+        const customerId = req.body.customerId;
         const update = await Customer.update(data, { where: { id: customerId } });
         if (update) {
             successResponse(
@@ -184,7 +198,7 @@ module.exports.addCustomer = async (req, res) => {
         const schema = joi.object({
             fullName: joi.string().min(2).required(),
             email: joi.string().min(2).required(),
-            phoneNum: joi.string().min(2).required(),
+            phone_num: joi.string().min(2).required(),
             address: joi.string().min(2).required(),
             wing: joi.string().min(2).required(),
             society: joi.string().min(2).required(),
@@ -194,8 +208,8 @@ module.exports.addCustomer = async (req, res) => {
         });
         validationJoi.joiValidation(schema, req.body);
         const status = true
-        const { fullName, email, phoneNum, address, wing, society, state, city, pincode } = req.body;
-        const data = { fullName, email, phoneNum, address, wing, society, state, city, pincode, status };
+        const { fullName, email, phone_num, address, wing, society, state, city, pincode } = req.body;
+        const data = { fullName, email, phone_num, address, wing, society, state, city, pincode, status };
         const addCustomer = await Customer.create(data);
         if (addCustomer) {
             successResponse(
@@ -270,11 +284,12 @@ module.exports.service_Providers_list = async (req, res) => {
     try {
         const list_washers = await Service_Providers.findAll({
             attributes: [
-                'id', 'fullName', 'email', 'phoneNum', 'address', 'state', 'country', 'city', 'createDate',
+                'id', 'full_name', 'email', 'phone_num', 'address', 'state', 'country', 'city', 'created_at',
                 [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'washer_profile/' + "',image)"), 'image']
             ]
         });
         if (list_washers) {
+            console.log('list_washers',list_washers)
             successResponseWithData(
                 res,
                 "Service provider list",
@@ -300,7 +315,7 @@ module.exports.service_Providers_ById = async (req, res) => {
         if (washerId) {
             const getDataById = await Service_Providers.findOne({
                 attributes: [
-                    'id', 'fullName', 'email', 'phoneNum', 'address', 'state', 'country', 'city', 'createDate',
+                    'id', 'full_name', 'email', 'phone_num', 'address', 'state', 'country', 'city', 'created_at',
                     [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'washer_profile/' + "',image)"), 'image']
                 ],
                 where: {
@@ -321,22 +336,32 @@ module.exports.service_Providers_ById = async (req, res) => {
 }
 
 
-module.exports.update_service_providers = (req, res) => {
+module.exports.update_service_providers = async (req, res) => {
     try {
-        const schema = joi.object({
-            id: joi.number().required(),
-            fullName: joi.string().min(3).required(),
-            email: joi.string().email().min(3).required(),
-            phoneNum: joi.string().min(10).required(),
-            address: joi.string().min(3).required(),
-            state: joi.string().min(1).required(),
-            country: joi.string().min(3).required(),
-            city: joi.string().min(3).required(),
-        });
-        const { fullName, email, phoneNum, address, state, country, city, id } = req.body;
-        const data = { fullName, email, phoneNum, address, state, country, city, id }
-        validationJoi.joiValidation(schema, data);
-        const userId = req.userId;
+        const data = {} = req.body;
+        if (req.body.full_name) {
+            data.full_name = req.body.full_name;
+        }
+        if (req.body.email) {
+            data.email = req.body.email;
+        }
+        if (req.body.phone_num) {
+            data.phone_num = req.body.phone_num;
+        }
+        if (req.body.address) {
+            data.address = req.body.address;
+        }
+        if (req.body.state) {
+            data.state = req.body.state;
+        }
+        if (req.body.country) {
+            data.country = req.body.country;
+        }
+        if (req.body.city) {
+            data.city = req.body.city;
+        }
+        const id = req.body.id;
+        // const userId = req.userId;
         if (req.files && req.files.image) {
             const image = req.files.image;
             const imageName = image.name;
@@ -349,6 +374,7 @@ module.exports.update_service_providers = (req, res) => {
                 }
                 else {
                     data.image = imageNewName
+                    console.log('dattt@@@@@@@@@@@@@@@',data);
                     const addWasher = await Service_Providers.update(data, { where: { id: id } });
                     if (addWasher) {
                         successResponse(
@@ -360,7 +386,14 @@ module.exports.update_service_providers = (req, res) => {
             });
         }
         else {
-            res.status(404).json({ 'message': "image is required" });
+            console.log('daattataa',data);
+            const addWasher = await Service_Providers.update(data, { where: { id: id } });
+            if (addWasher) {
+                successResponse(
+                    res,
+                    'Profile Update Successfuly',
+                )
+            }
         }
     } catch (error) {
         console.log('update_service_providers Error', error);
@@ -377,15 +410,15 @@ module.exports.delete_service_providers = async (req, res) => {
             if (finddata) {
                 const destroyData = await Service_Providers.destroy({ where: { id: washerId } });
                 if (destroyData) {
-                console.log('finddata', finddata)
+                    console.log('finddata', finddata)
 
-                const image = destroyData.music;
-                fs.unlink('public/washer_profile/' + image, function (error) {
-                    if (error) {
-                        console.log(error);
-                    }
-                });
-                successResponse(res, "One service provide delete successfully");
+                    const image = destroyData.music;
+                    fs.unlink('public/washer_profile/' + image, function (error) {
+                        if (error) {
+                            console.log(error);
+                        }
+                    });
+                    successResponse(res, "One service provide delete successfully");
                 }
             }
             else {
@@ -427,23 +460,64 @@ module.exports.delete_service_providers = async (req, res) => {
 // }
 
 
-module.exports.schedule_list = async(req,res) => {
+module.exports.schedule_list = async (req, res) => {
     try {
         const scheduleListData = await Schedule_vehicle.findAll(
-            {include: [Customer_Vehilce]}
+            // {include: [Customer_Vehilce]}
         );
-        if(scheduleListData){
+        if (scheduleListData) {
             successResponseWithData(
                 res,
                 "Vehicle schedule List",
                 scheduleListData
             );
         }
-        else{
-            notFoundResponse(res,"Data Not Found");
+        else {
+            notFoundResponse(res, "Data Not Found");
         }
     } catch (error) {
         console.log('schedule_list Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.assignTask = async (req, res) => {
+    try {
+        const schema = joi.object({
+            schedul_id: joi.number().required(),
+            washer_id: joi.number().required(),
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const { schedul_id, washer_id } = req.body;
+        const data = { schedul_id, washer_id };
+        const addtask = await Washer_task.create(data);
+        if (addtask) {
+            successResponse(res, "Task Assign Successfuly");
+        }
+        else {
+            errorResponse(res, "Somthing went wrong")
+        }
+    } catch (error) {
+        console.log('assignTask Error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.dashboard = async(req,res) => {
+    try {
+        const totleCustomer = await Customer.count('fullName');
+        console.log('totleCustomer',totleCustomer)
+        const totleWasher = await Service_Providers.count('full_name');
+        const array = [{
+            totleCustomer,
+            totleWasher
+        }]
+        if(totleCustomer && totleWasher){
+            successResponseWithData(res,"Totle Data",array);
+        }
+    } catch (error) {
+        console.log('dashboard Error', error);
         badRequest(res, error);
     }
 }

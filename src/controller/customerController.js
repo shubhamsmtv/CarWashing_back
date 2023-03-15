@@ -1,6 +1,6 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
-const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle } = require('../model/customerModel');
+const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address } = require('../model/customerModel');
 const { Vehicle_category } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
@@ -9,61 +9,11 @@ const jwt = require('jsonwebtoken');
 const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
 const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes, velideUser } = require('../middleware/apiResponse');
+const FCM = require('fcm-node');
+const server_key = "AAAA3vCB6sE:APA91bHu-xdBFBFvcFvAU5kCVa23__HQjxyGTwRtMFE8zae2aSa-3cR47xQ_5mzA0q1LtDROz89QxwqVxAQlOalipoxgc-m006SRUdS0LM_a7a47yTbRE-8KQ3bjGch1_b4CVtKk8uHj"
+const fcm = new FCM(server_key);
 
-// module.exports.register = async (req, res) => {
-//     try {
-//         const schema = joi.object({
-//             phone_Num: joi.string().min(10).required(),
-//         });
-//         validateSchema.joiValidation(schema, req.body);
-//         const phoneNum = req.body.phone_Num;
-//         const getMobile = await Customer.findOne({ where: { phoneNum: phoneNum } });
-//         if (getMobile) {
-//             // if (getMobile && getMobile.status == 1) {
-//             //     errorResponse(
-//             //         res,
-//             //         'This Number is Already Registered'
-//             //     )
-//             // }
-//             // else {
-//                 const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-//                 const data = { phoneNum, otp }
-//                 const sendOTP = async (phoneNum, otp) => {
-//                     const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-//                     if (res.status == 200 && res.data.status == "success") {
-//                         const response = await Customer.update({ otp: otp }, { where: { phoneNum: phoneNum } });
-//                         return response
-//                     }
-//                 }
-//                 const result = await sendOTP(phoneNum, otp);
-//             console.log(otp);
 
-//                 if (result) {
-//                     successResponseWithData(res, "Otp Send Successfully",otp)
-//                 }
-//             // }
-//         }
-//         else {
-//             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-//             const data = { phoneNum, otp }
-//             console.log(otp);
-//             const sendOTP = async (phoneNum, otp) => {
-//                 const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-//                 if (res.status == 200 && res.data.status == "success") {
-//                     const response = await Customer.create(data);
-//                     return response
-//                 }
-//             }
-//             const result = await sendOTP(phoneNum, otp);
-//             if (result) {
-//                 successResponse(res, "Otp Send Successfully")
-//             }
-//         }
-//     } catch (error) {
-//         console.log('register Error', error);
-//         badRequest(res, error);
-//     }
-// }
 
 module.exports.otpVerify = async (req, res) => {
     try {
@@ -79,8 +29,8 @@ module.exports.otpVerify = async (req, res) => {
         const phoneNum = req.body.phoneNum;
         const data = { fcm_token, device_type }
         const getUser = await Customer.findOne({
-            attributes: { exclude: ['createDate', 'updateDate'] },
-            where: { phoneNum: phoneNum }
+            attributes: { exclude: ['created_at', 'updated_at'] },
+            where: { phone_num: phoneNum }
         });
         if (getUser) {
             console.log(getUser.otp == otp)
@@ -89,7 +39,7 @@ module.exports.otpVerify = async (req, res) => {
                 const token = jwt.sign(
                     {
                         userId: getUser.id,
-                        phoneNum: getUser.phoneNum,
+                        phoneNum: getUser.phone_num,
                     },
                     process.env.SECRET_KEY,
                     {
@@ -131,42 +81,6 @@ module.exports.otpVerify = async (req, res) => {
     }
 }
 
-// module.exports.login = async (req, res) => {
-//     try {
-//         const schema = joi.object({
-//             phone_Num: joi.string().required(),
-//         });
-//         validateSchema.joiValidation(schema, req.body);
-//         const phoneNum = req.body.phone_Num;
-//         const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-//         const getUser = await Customer.findOne({ where: { phoneNum: phoneNum } });
-//         if (getUser) {
-//             const sendOTP = async (phoneNum, otp) => {
-//                 const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=91${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-//                 if (res.status == 200 && res.data.status == "success") {
-//                     const response = await Customer.update({ otp: otp }, { where: { id: getUser.id } });
-//                     return response
-//                 }
-//             }
-//             const result = await sendOTP(phoneNum, otp);
-//             if (result) {
-//                 successResponse(
-//                     res,
-//                     "Otp Send Successfully"
-//                 )
-//             }
-//         }
-//         else {
-//             errorResponse(
-//                 res,
-//                 "User Not Found"
-//             )
-//         }
-//     } catch (error) {
-//         console.log('login Error', error);
-//         badRequest(res, error);
-//     }
-// }
 
 module.exports.login = async (req, res) => {
     try {
@@ -174,19 +88,20 @@ module.exports.login = async (req, res) => {
             phone_Num: joi.string().min(10).required(),
         });
         validateSchema.joiValidation(schema, req.body);
-        const phoneNum = req.body.phone_Num;
-        const getMobile = await Customer.findOne({ where: { phoneNum: phoneNum } });
+        const phone_num = req.body.phone_Num;
+        const getMobile = await Customer.findOne({ where: { phone_num: phone_num } });
+        console.log('phone_Num', phone_num)
         if (getMobile) {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-            const data = { phoneNum, otp }
-            const sendOTP = async (phoneNum, otp) => {
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+            const data = { phone_num, otp }
+            const sendOTP = async (phone_num, otp) => {
+                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
                 if (res.status == 200 && res.data.status == "success") {
-                    const response = await Customer.update({ otp: otp }, { where: { phoneNum: phoneNum } });
+                    const response = await Customer.update({ otp: otp }, { where: { phone_num: phone_num } });
                     return response
                 }
             }
-            const result = await sendOTP(phoneNum, otp);
+            const result = await sendOTP(phone_num, otp);
             console.log(otp);
 
             if (result) {
@@ -195,16 +110,17 @@ module.exports.login = async (req, res) => {
         }
         else {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-            const data = { phoneNum, otp }
-            console.log(otp);
-            const sendOTP = async (phoneNum, otp) => {
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+            const data = { phone_num, otp }
+            const sendOTP = async (phone_num, otp) => {
+                console.log('daphone_Numta', phone_num)
+                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
                 if (res.status == 200 && res.data.status == "success") {
                     const response = await Customer.create(data);
+                    console.log(response);
                     return response
                 }
             }
-            const result = await sendOTP(phoneNum, otp);
+            const result = await sendOTP(phone_num, otp);
             if (result) {
                 successResponseWithData(res, "Otp Send Successfully", otp)
             }
@@ -221,7 +137,7 @@ module.exports.getProfile = async (req, res) => {
         const getData = await Customer.findOne(
             {
                 attributes: [
-                    'id', 'fullName', 'email', 'phoneNum', 'address', 'wing', 'society', 'state', 'city', 'pincode',
+                    'id', 'fullName', 'email', 'phone_num', 'address', 'wing', 'society', 'state', 'city', 'pincode',
                     [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'customerImg/' + "',profile_img)"), 'profile_img']
                 ],
                 where: { id: userId }
@@ -282,27 +198,42 @@ module.exports.uploadProfile = (req, res) => {
 
 module.exports.complitProfile = async (req, res) => {
     try {
-        const schema = joi.object({
-            fullName: joi.string().min(3).required(),
-            email: joi.string().min(3).required(),
-            phoneNum: joi.string().min(10).required(),
-            address: joi.string().min(3).required(),
-            wing: joi.string().min(3).required(),
-            society: joi.string().min(3).required(),
-            state: joi.string().min(1).required(),
-            city: joi.string().min(3).required(),
-            pincode: joi.number().min(3).required(),
-        });
-        validateSchema.joiValidation(schema, req.body);
-        const userId = req.userId;
-        const updateDate = new Date();
+        const profileData = {};
+        if (req.body.fullName) {
+            profileData.fullName = req.body.fullName;
+        }
+        if (req.body.email) {
+            profileData.email = req.body.email;
+        }
+        if (req.body.phoneNum) {
+            profileData.phone_num = req.body.phoneNum;
+        }
+        if (req.body.wing) {
+            profileData.wing = req.body.wing;
+        }
+        if (req.body.society) {
+            profileData.society = req.body.society;
+        }
+        if (req.body.state) {
+            profileData.state = req.body.state;
+        }
+        if (req.body.city) {
+            profileData.city = req.body.city;
+        }
+        if (req.body.pincode) {
+            profileData.pincode = req.body.pincode;
+        }
+        if (req.body.address) {
+            profileData.address = req.body.address;
+        }
+        const user_id = req.userId;
         const status = true
         const { fullName, email, phoneNum, address, wing, society, state, city, pincode } = req.body;
-        const data = { fullName, email, phoneNum, address, wing, society, state, city, pincode, updateDate, status };
-        if (userId) {
-            const updateData = await Customer.update(data, { where: { id: userId } });
+        const data = { fullName, email, phoneNum, address, wing, society, state, city, pincode, status };
+        if (user_id) {
+            const updateData = await Customer.update(data, { where: { id: user_id } });
             if (updateData) {
-                const vehicle_data = await Customer_Vehilce.findOne({ where: { userId: userId } });
+                const vehicle_data = await Customer_Vehilce.findOne({ where: { user_id: user_id } });
                 if (!vehicle_data) {
                     successCompleteRes(
                         res,
@@ -338,10 +269,10 @@ module.exports.getVehilceCategory = async (req, res) => {
         const vehicleType = req.query.type;
         const getCategory = await Vehicle_category.findAll({
             attributes: [
-                'id', 'title', 'vehicle_type',
-                [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',images)"), 'images']
+                'id', 'title',
+                [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'vehilceImage/' + "',images)"), 'images']
             ],
-            where: { vehicle_type: vehicleType }
+            where: { parent_id: vehicleType }
         });
 
         if (getCategory) {
@@ -365,17 +296,18 @@ module.exports.getVehilceCategory = async (req, res) => {
 
 module.exports.getVehicleType = async (req, res) => {
     try {
-        const cate = await Vehicle_category.findAll({
+        const getCategory = await Vehicle_category.findAll({
             attributes: [
+                ['id', 'vehicle_type'], 'title',
 
-                sequelize.literal('distinct `vehicle_type`'), 'vehicle_type'
             ],
-        })
+            where: { parent_id: null }
+        });
 
-        if (cate) {
+        if (getCategory) {
             res.status(200).json({
                 status: true,
-                category: cate
+                category: getCategory
             });
         } else {
             res.status(200).json({
@@ -478,39 +410,16 @@ module.exports.addVehicle = async (req, res) => {
             image: joi.string().required()
         });
         validateSchema.joiValidation(schema, req.body);
-        const userId = req.userId;
-        const getVehicle = await Customer_Vehilce.findAndCountAll({ where: { userId: userId } });
+        const user_id = req.userId;
+        const getVehicle = await Customer_Vehilce.findAndCountAll({ where: { user_id: user_id } });
         console.log('getVehicle', getVehicle)
         if (getVehicle.count < 4) {
             const status = true
             const { vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body;
-            const data = { userId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
-            // if (req.files) {
-            //     const image = req.files.image;
-            //     const imageName = image.name;
-            //     const imageExtantion = imageName.split('.').pop();
-            //     const imageNewName = uuid.v1() + '.' + imageExtantion;;
-            //     const uploadPath = 'public/vehilceImage/' + imageNewName;
-            //     image.mv(uploadPath, async (error, result) => {
-            //         if (error) {
-            //             console.log('error', error);
-            //         }
-            //         else {
-            //             data.image = imageNewName
-            //             const addVehilce = await Customer_Vehilce.create(data);
-            //             if (addVehilce) {
-            //                 successResponse(
-            //                     res,
-            //                     'Vehilce Data Added Successfuly',
-            //                 )
-            //             }
-            //         }
-            //     });
-            // }
-            // else {
+            const data = { user_id, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
             const addVehilce = await Customer_Vehilce.create(data);
             if (addVehilce) {
-                await Customer.update({ vehicle_status: true }, { where: { id: userId } })
+                await Customer.update({ vehicle_status: true }, { where: { id: user_id } })
                 successResponse(
                     res,
                     'Vehilce Data Added Successfuly',
@@ -521,7 +430,7 @@ module.exports.addVehicle = async (req, res) => {
             }
         }
         else {
-            errorResponse(res,"You have add only four vehicle");
+            errorResponse(res, "You have add only four vehicle");
         }
         return false
 
@@ -536,7 +445,7 @@ module.exports.addVehicle = async (req, res) => {
 module.exports.vehicleList = async (req, res) => {
     try {
         const userId = req.userId;
-        const vehicle_list = await Customer_Vehilce.findAll({ where: { userId: userId } });
+        const vehicle_list = await Customer_Vehilce.findAll({ where: { user_id: userId } });
         if (vehicle_list) {
             successResponseWithData(
                 res,
@@ -562,7 +471,7 @@ module.exports.getVehicleById = async (req, res) => {
         const userId = req.userId;
         const vehicleId = req.params.vehicleId;
         if (vehicleId) {
-            const vehicle = await Customer_Vehilce.findOne({ where: { id: vehicleId, userId: userId } });
+            const vehicle = await Customer_Vehilce.findOne({ where: { id: vehicleId, user_id: userId } });
             if (vehicle) {
                 successResponseWithData(
                     res,
@@ -589,21 +498,22 @@ module.exports.getVehicleById = async (req, res) => {
 
 module.exports.updateVehicle = async (req, res) => {
     try {
-        const schema = joi.object({
-            vehicleId: joi.number().required(),
-            vehicle_type: joi.string().required(),
-            vehicle_title: joi.string().required(),
-            vehicle_model: joi.string().required(),
-            vehicle_color: joi.string().required(),
-            license_num: joi.string().required(),
-            parking_num: joi.string().required(),
-            image: joi.string().required()
-        });
-        validateSchema.joiValidation(schema, req.body)
-        const userId = req.userId;
-        const { vehicleId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image } = req.body
-        const data = { vehicleId, vehicle_type, vehicle_title, vehicle_model, vehicle_color, license_num, parking_num, image }
-        const upVehicle = await Customer_Vehilce.update(data, { where: { id: vehicleId, userId: userId } });
+        const data = {};
+        if (req.body.vehicle_model) {
+            data.vehicle_model = req.body.vehicle_model;
+        }
+        if (req.body.vehicle_color) {
+            data.vehicle_color = req.body.vehicle_color;
+        }
+        if (req.body.license_num) {
+            data.license_num = req.body.license_num;
+        }
+        if (req.body.parking_num) {
+            data.parking_num = req.body.parking_num;
+        }
+        const vehicleId = req.body.vehicleId;
+        const user_id = req.userId;
+        const upVehicle = await Customer_Vehilce.update(data, { where: { id: vehicleId, user_id: user_id } });
         if (upVehicle) {
             successResponse(
                 res,
@@ -652,9 +562,9 @@ module.exports.addWallet = async (req, res) => {
             payment_method: joi.string().required(),
         });
         validateSchema.joiValidation(schema, req.body);
-        const userId = req.userId;
+        const user_id = req.userId;
         const { amount, coupon_code, payment_method } = req.body;
-        const paymentData = { userId, amount, coupon_code, payment_method }
+        const paymentData = { user_id, amount, coupon_code, payment_method }
         const addpayment = await Wallet.create(paymentData);
         if (addpayment) {
             successResponseWithData(
@@ -677,13 +587,13 @@ module.exports.addWallet = async (req, res) => {
 
 module.exports.getWallet = async (req, res) => {
     try {
-        const userId = req.userId;
-        if (userId) {
+        const user_id = req.userId;
+        if (user_id) {
             const walletData = await Wallet.findAll({
                 where: {
-                    userId: userId
+                    user_id: user_id
                 },
-                order: [['createDate', 'DESC']],
+                order: [['created_at', 'DESC']],
             });
             if (walletData) {
                 successResponseWithData(
@@ -714,9 +624,9 @@ module.exports.getWallet = async (req, res) => {
 
 module.exports.walletBalance = async (req, res) => {
     try {
-        const userId = req.userId;
-        if (userId) {
-            const totleBal = await Wallet.sum('amount', { where: { userId: userId } });
+        const user_id = req.userId;
+        if (user_id) {
+            const totleBal = await Wallet.sum('amount', { where: { user_id: user_id } });
             if (totleBal) {
                 successResponseWithData(
                     res,
@@ -742,16 +652,15 @@ module.exports.my_services = async (req, res) => {
     try {
         const userId = req.userId;
         if (userId) {
-            const myService = await Washer_service.findAll({
+            const myService = await Schedule_vehicle.findAll({
                 attributes: [
-                    'id', 'userId', 'date', 'time',
-                    [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'serviceImg/' + "',image)"), 'image']
+                    'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
+                    'license_num', 'status', 'image',
+                    // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
                 ],
-                where: {
-                    userId: userId
-                }
+                where: { user_id: userId }
             });
-            if (myService) {
+            if (myService.length) {
                 successResponseWithData(
                     res,
                     "My Services",
@@ -785,9 +694,16 @@ module.exports.setschedule = async (req, res) => {
             vehicle_id: joi.string().required()
         });
         validateSchema.joiValidation(schema, req.body);
-        const userId = req.userId;
+        const user_id = req.userId;
         const { schedule_date, address, vehicle_id } = req.body;
-        const data = { userId, schedule_date, address, vehicle_id };
+        const data = { user_id, schedule_date, address, vehicle_id };
+        const vehicle_data = await Customer_Vehilce.findOne({ where: { id: vehicle_id } });
+        data.vehicle_type = vehicle_data.vehicle_type;
+        data.vehicle_title = vehicle_data.vehicle_title;
+        data.vehicle_model = vehicle_data.vehicle_model;
+        data.vehicle_color = vehicle_data.vehicle_color;
+        data.license_num = vehicle_data.license_num;
+        data.image = vehicle_data.image;
         const createData = await Schedule_vehicle.create(data);
         if (createData) {
             successResponse(res, "Vehicle Schedule Added Successfully");
@@ -797,6 +713,202 @@ module.exports.setschedule = async (req, res) => {
         }
     } catch (error) {
         console.log('setschedule Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.home = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const completed_services = await Schedule_vehicle.findAll({
+            attributes: [
+                'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color', 'image',
+                'license_num', 'status',
+                // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
+            ],
+            where: {
+                user_id: userId,
+                status: 'Completed'
+
+            }
+        });
+        const inprocess_services = await Schedule_vehicle.findAll({
+            attributes: [
+                'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
+                'license_num', 'status', 'image',
+                // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
+            ],
+            where: {
+                user_id: userId,
+                status: 'In-progress'
+            }
+        });
+        const slider = await Slider.findAll({
+            attributes: [
+                'id', 'title',
+                [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'sliderImg/' + "',image)"), 'image']
+            ]
+        });
+        const array = [{
+            inprogress_sevices: inprocess_services,
+            complete_sevices: completed_services,
+            slider: slider,
+        }];
+        successResponseWithData(res, "Home data", array);
+        // res.status(200).json({
+        //     "status":true,
+        //     "message":'',
+        //     data : array
+        // })
+    } catch (error) {
+        console.log('home Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+module.exports.address = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const addressList = await Address.findAll({
+            attributes: {
+                exclude: ['created_at', 'updated_at', 'parking_type', 'lat', 'lng']
+            },
+            where: { user_id: userId }
+        });
+        if (addressList.length) {
+            successResponseWithData(res, "Address List Data", addressList);
+        }
+        else {
+            notFoundResponse(res, "Address list not found");
+        }
+    } catch (error) {
+        console.log('address Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.addParkingAdrress = async (req, res) => {
+    try {
+        const user_id = req.userId;
+        const schema = joi.object({
+            address: joi.string().required(),
+            building: joi.string().required(),
+            society_name: joi.string().required(),
+            lot_num: joi.string().required(),
+        });
+        validateSchema.joiValidation(schema, req.body);
+        const { address, building, society_name, lot_num } = req.body;
+        const addressData = { address, building, society_name, lot_num, user_id };
+        const addAddress = await Address.create(addressData);
+        if (addAddress) {
+            successResponse(res, "Address Add Successfully");
+        }
+        else {
+            errorResponse(res, "Something Went Wrong");
+        }
+    } catch (error) {
+        console.log('addParkingAdrress Error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.afterService = async (req, res) => {
+    try {
+        const schedule_id = req.params.schedule_id;
+        if (schedule_id) {
+            const serviceData = await Washer_service.findAll({
+                attributes: [
+                    'id', 'schedule_id', 'status', 'created_at', 'updated_at',
+                    [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'serviceImg/' + "',image)"), 'image']
+                ],
+                where: {
+                    schedule_id: schedule_id
+                }
+            });
+            if (serviceData) {
+                successResponseWithData(res, "Afetr Service data", serviceData);
+            }
+            else {
+                notFoundResponse(res, "Data Not Found");
+            }
+        }
+        else {
+            errorResponse(res, "schedule_id is required");
+        }
+    } catch (error) {
+        console.log('afterService Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+module.exports.feedback = async (req, res) => {
+    try {
+        const schedule_id = req.body.schedule_id;
+        const feedback = req.body.feedback;
+        if (schedule_id) {
+            const feedbackRes = await Washer_service.update({ feedback: feedback }, { where: { schedule_id: schedule_id } });
+            if (feedbackRes) {
+                successResponse(res, "Thanks for feedback");
+            }
+            else {
+                errorResponse(res, "Something Went Wrong");
+            }
+        }
+        else {
+            errorResponse(res, "schedule_id is required");
+        }
+    } catch (error) {
+        console.log('feedback Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.notification = (req, res) => {
+    try {
+        const registerToken = req.body.registerToken;
+        const title = req.body.title;
+        if (registerToken) {
+            var msg = {}
+            var data = {
+                package: "kuch bhi",
+                userId: 5,
+                eventId: 4,
+            }
+            msg.to = req.body.registerToken
+            msg.data = {
+                my_key: 'my value',
+                contents: "abcv/",
+                body: "Body 9",
+                title: "title 9",
+                package:"EventData.packagetype",
+                userId:2,
+                eventId:9
+            }
+            
+
+            fcm.send(msg, function (err, response) {
+                if (err) {
+                    console.log("Something has gone wrong!", err);
+                } else {
+                    console.log("Successfully sent with response: ", response);
+                }
+            });
+        }
+        else {
+            errorResponse(
+                res,
+                "registerToken is require",
+            )
+        }
+    } catch (error) {
+        console.log('notification Error', error);
         badRequest(res, error);
     }
 }

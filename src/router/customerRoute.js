@@ -3,9 +3,9 @@ const app = express();
 const customerController = require('../controller/customerController');
 const jwtToken = require('../helper/verifyToken');
 
-// app.post('/register',customerController.register);
-app.post('/verifyOtp', customerController.otpVerify);
+
 app.post('/login',customerController.login);
+app.post('/verifyOtp', customerController.otpVerify);
 app.get('/getProfile',jwtToken.validateToken, customerController.getProfile);
 app.post('/complitProfile', jwtToken.validateToken, customerController.complitProfile);
 app.get('/getVehilceCategory', jwtToken.validateToken, customerController.getVehilceCategory);
@@ -23,5 +23,11 @@ app.get('/walletHistory', jwtToken.validateToken, customerController.getWallet);
 app.get('/walletBalance', jwtToken.validateToken, customerController.walletBalance);
 app.get('/myServices', jwtToken.validateToken, customerController.my_services);
 app.post('/uploadProfile', jwtToken.validateToken, customerController.uploadProfile);
-app.post('/setSchedule', jwtToken.validateToken, customerController.setschedule)
+app.post('/setSchedule', jwtToken.validateToken, customerController.setschedule);
+app.get('/home', jwtToken.validateToken, customerController.home);
+app.get('/address', jwtToken.validateToken, customerController.address);
+app.post('/addAdrress', jwtToken.validateToken, customerController.addParkingAdrress);
+app.get('/afterService/:schedule_id', jwtToken.validateToken, customerController.afterService);
+app.post('/feedback', jwtToken.validateToken, customerController.feedback);
+app.post('/notification', jwtToken.validateToken , customerController.notification);
 module.exports = app;

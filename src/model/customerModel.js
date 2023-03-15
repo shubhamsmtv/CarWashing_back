@@ -1,4 +1,4 @@
-const {sequelize,  Sequelize:{DataTypes}} = require('../helper/db');
+const {sequelize,Sequelize,  Sequelize:{DataTypes}} = require('../helper/db');
 
 
 
@@ -11,7 +11,7 @@ const Customer = sequelize.define('users', {
         type : DataTypes.STRING,
         allowNull: true
     },
-    phoneNum : {
+    phone_num : {
         type : DataTypes.STRING,
         allowNull : true
     },
@@ -63,11 +63,11 @@ const Customer = sequelize.define('users', {
         type : DataTypes.STRING,
         allowNull: true
     },
-    createDate : {
+    created_at : {
         type : DataTypes.DATE,
         defaultValue : new Date()
     },
-    updateDate : {
+    updated_at : {
         type : DataTypes.DATE,
         defaultValue : new Date()
     }
@@ -119,7 +119,7 @@ const Pincode = sequelize.define('pincode',{
 
 
 const Customer_Vehilce = sequelize.define('customer_vehilce',{
-    userId : {
+    user_id : {
         type : DataTypes.STRING,
         allowNull: true
     },
@@ -151,7 +151,7 @@ const Customer_Vehilce = sequelize.define('customer_vehilce',{
         type : DataTypes.STRING,
         allowNull: true
     },
-    createDate : {
+    created_at : {
         type : DataTypes.DATE,
         allowNull: new Date()
     },
@@ -159,11 +159,23 @@ const Customer_Vehilce = sequelize.define('customer_vehilce',{
 
 
 const Wallet = sequelize.define('customer_wallet',{
-    userId : {
+    user_id : {
         type : DataTypes.NUMBER,
         allowNull: true
     },
     amount : {
+        type : DataTypes.NUMBER,
+        allowNull: true
+    },
+    txn_type : {
+        type : DataTypes.NUMBER,
+        allowNull: true
+    },
+    comment : {
+        type : DataTypes.NUMBER,
+        allowNull: true
+    },
+    txn_id : {
         type : DataTypes.NUMBER,
         allowNull: true
     },
@@ -175,19 +187,19 @@ const Wallet = sequelize.define('customer_wallet',{
         type : DataTypes.STRING,
         allowNull: true
     },
-    createDate : {
+    created_at : {
         type : DataTypes.DATE,
         default: new Date()
     },
-    updateDate : {
+    updated_at : {
         type : DataTypes.DATE,
         default: new Date()
     }
 },{tableName:"customer_wallet"});
 
 
-const Schedule_vehicle = sequelize.define('schedule_vehicle',{
-    userId : {
+const Schedule_vehicle = sequelize.define('schedule_service',{
+    user_id : {
         type : DataTypes.NUMBER,
         allowNull : false
     },
@@ -199,17 +211,132 @@ const Schedule_vehicle = sequelize.define('schedule_vehicle',{
         type : DataTypes.NUMBER,
         allowNull : false
     },
+    vehicle_type : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    vehicle_title : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    image : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    vehicle_model : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    vehicle_color : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    license_num : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    status : {
+        type : Sequelize.ENUM('Pending','confirmed','In-progress','Completed','Canceled'),
+        defaultValue : 'Pending'
+    },
+    lat : {
+        type : DataTypes.FLOAT,
+        allowNull : null
+    },
+    lng : {
+        type : DataTypes.FLOAT,
+        allowNull : null
+    },
     schedule_date : {
         type : DataTypes.DATE,
         allowNull : false
     },
-    createDate : {
+    created_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at : {
         type : DataTypes.DATE,
         allowNull : new Date()
     }
-},{tableName:'schedule_vehicle'});
+},{tableName:'schedule_service'});
 
 
+const Slider = sequelize.define('slider',{
+    title : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    image : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    slider_type : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    redirect_id : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    click_count : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    created_at: {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    }
+},{tableName:'slider'});
+
+
+
+const Address = sequelize.define('parking_address',{
+    parking_type:{
+        type : Sequelize.ENUM("Public", "Private", "Office","Home"),
+        allowNull: 'Home'
+    },
+    user_id:{
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    address:{
+        type : DataTypes.STRING,
+        allowNull: false
+    },
+    building:{
+        type : DataTypes.STRING,
+        allowNull: false
+    },
+    society_name:{
+        type : DataTypes.STRING,
+        allowNull: false
+    },
+    lot_num:{
+        type : DataTypes.STRING,
+        allowNull: false
+    },
+    lat:{
+        type : DataTypes.FLOAT,
+        allowNull: true
+    },
+    lng:{
+        type : DataTypes.FLOAT,
+        allowNull: true
+    },
+    created_at: {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at:{
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+},{tableName:'parking_address'});
 
 Schedule_vehicle.belongsTo(Customer_Vehilce,{foreignKey: 'vehicle_id'});
 Customer_Vehilce.hasMany(Schedule_vehicle,{foreignKey : 'id'});
@@ -221,5 +348,7 @@ module.exports = {
     Pincode,
     Customer_Vehilce,
     Wallet,
-    Schedule_vehicle
+    Schedule_vehicle,
+    Slider,
+    Address
 }

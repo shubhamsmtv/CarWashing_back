@@ -3,10 +3,11 @@ const joi = require('joi');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
-const {sequelize} = require('../helper/db');
+const { sequelize } = require('../helper/db');
 const validation = require('../helper/joiValidation');
 const { Washer_service, Service_Providers } = require('../model/washerModel');
-const { Customer_Vehilce, Customer, } = require('../model/customerModel')
+const { Customer_Vehilce, Customer, Schedule_vehicle } = require('../model/customerModel')
+const { Washer_task } = require('../model/adminModel');
 const uuid = require('uuid')
 const { successResponseWithData, notFoundResponse, loggingRespons } = require('../middleware/apiResponse');
 
@@ -15,34 +16,29 @@ const { successResponseWithData, notFoundResponse, loggingRespons } = require('.
 module.exports.add_service = async (req, res) => {
     try {
         const schema = joi.object({
-            userId: joi.number().required(),
-            date: joi.date().required(),
-            time: joi.string().required(),
+            schedule_id: joi.number().required(),
+            status: joi.string().required()
         });
-        validation.joiValidation(schema, req.body.data, req.body.time);
-        const { userId, date, time } = req.body;
-        const serviceData = { userId, date, time }
+        const { schedule_id, status } = req.body;
+        const serviceData = { schedule_id, status }
+        validation.joiValidation(schema, serviceData);
+        serviceData.washer_id = req.userId;
         if (req.files && req.files.image) {
-            const image = req.files.image;
+            const image = req.files.image
             const imageName = image.name;
             const imageExtantion = imageName.split('.').pop();
             const imageNewName = uuid.v1() + '.' + imageExtantion;;
             const uploadPath = 'public/serviceImg/' + imageNewName;
-            image.mv(uploadPath, async (error, result) => {
-                if (error) {
-                    console.log('error', error);
-                }
-                else {
-                    serviceData.image = imageNewName
-                    const addServise = await Washer_service.create(serviceData);
-                    if (addServise) {
-                        successResponse(
-                            res,
-                            'Service Added Successfuly',
-                        )
-                    }
-                }
-            });
+            image.mv(uploadPath);
+            serviceData.image =imageNewName
+            const addServise = await Washer_service.create(serviceData);
+            if (addServise) {
+                await Schedule_vehicle.update({status:'In-progress'},{where:{id:schedule_id}});
+                successResponse(
+                    res,
+                    'Service Added Successfuly',
+                )
+            }
         }
         else {
             res.json({ "message": "Image is required" });
@@ -61,19 +57,19 @@ module.exports.login = async (req, res) => {
             phone_num: joi.string().min(10).required(),
         });
         validation.joiValidation(schema, req.body);
-        const phoneNum = req.body.phone_num;
-        const getMobile = await Service_Providers.findOne({ where: { phoneNum: phoneNum } });
+        const phone_num = req.body.phone_num;
+        const getMobile = await Service_Providers.findOne({ where: { phone_num: phone_num } });
         if (getMobile) {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-            const data = { phoneNum, otp }
-            const sendOTP = async (phoneNum, otp) => {
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+            const data = { phone_num, otp }
+            const sendOTP = async (phone_num, otp) => {
+                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
                 if (res.status == 200 && res.data.status == "success") {
-                    const response = await Service_Providers.update({ otp: otp }, { where: { phoneNum: phoneNum } });
+                    const response = await Service_Providers.update({ otp: otp }, { where: { phone_num: phone_num } });
                     return response
                 }
             }
-            const result = await sendOTP(phoneNum, otp);
+            const result = await sendOTP(phone_num, otp);
             console.log(otp);
 
             if (result) {
@@ -82,16 +78,16 @@ module.exports.login = async (req, res) => {
         }
         else {
             const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-            const data = { phoneNum, otp }
+            const data = { phone_num, otp }
             console.log(otp);
-            const sendOTP = async (phoneNum, otp) => {
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phoneNum}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+            const sendOTP = async (phone_num, otp) => {
+                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
                 if (res.status == 200 && res.data.status == "success") {
                     const response = await Service_Providers.create(data);
                     return response
                 }
             }
-            const result = await sendOTP(phoneNum, otp);
+            const result = await sendOTP(phone_num, otp);
             if (result) {
                 successResponseWithData(res, "Otp Send Successfully", otp)
             }
@@ -115,11 +111,11 @@ module.exports.otpVerify = async (req, res) => {
         validation.joiValidation(schema, req.body);
         const { fcm_token, device_type } = req.body;
         const otp = req.body.otp;
-        const phoneNum = req.body.phoneNum;
+        const phone_num = req.body.phoneNum;
         const data = { fcm_token, device_type }
         const getUser = await Service_Providers.findOne({
             attributes: { exclude: ['createDate', 'updateDate'] },
-            where: { phoneNum: phoneNum }
+            where: { phone_num: phone_num }
         });
         if (getUser) {
             console.log(getUser.otp == otp)
@@ -128,7 +124,7 @@ module.exports.otpVerify = async (req, res) => {
                 const token = jwt.sign(
                     {
                         userId: getUser.id,
-                        phoneNum: getUser.phoneNum,
+                        phoneNum: getUser.phone_num,
                     },
                     process.env.SECRET_KEY,
                     {
@@ -177,14 +173,14 @@ module.exports.completeProfile = (req, res) => {
         const schema = joi.object({
             fullName: joi.string().min(3).required(),
             email: joi.string().email().min(3).required(),
-            phoneNum: joi.string().min(10).required(),
+            phone_num: joi.string().min(10).required(),
             address: joi.string().min(3).required(),
             state: joi.string().min(1).required(),
             country: joi.string().min(3).required(),
             city: joi.string().min(3).required(),
         });
-        const { fullName, email, phoneNum, address, state, country, city } = req.body;
-        const data = { fullName, email, phoneNum, address, state, country, city }
+        const { fullName, email, phone_num, address, state, country, city } = req.body;
+        const data = { fullName, email, phone_num, address, state, country, city }
         validation.joiValidation(schema, data);
         const userId = req.userId;
         data.Pro_status = true
@@ -226,7 +222,7 @@ module.exports.getProfile = async (req, res) => {
         const getData = await Service_Providers.findOne(
             {
                 attributes: [
-                    'id', 'fullName', 'email', 'phoneNum', 'address', 'state', 'country', 'city',
+                    'id', 'full_name', 'email', 'phone_num', 'address', 'state', 'country', 'city',
                     [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'washer_profile/' + "',image)"), 'image']
                 ],
                 where: { id: userId }
@@ -247,6 +243,41 @@ module.exports.getProfile = async (req, res) => {
         }
     } catch (error) {
         console.log('getProfile', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.assignTaskList = async (req, res) => {
+    try {
+        const washerId = req.userId;
+        if (washerId) {
+            const getTask = await Washer_task.findAll({
+                attributes: { exclude: ['created_at'] },
+                include: [
+                    {
+                        model: Schedule_vehicle,
+                        attributes: { exclude: ['created_at'] },
+                    }
+                ],
+                // include: [Schedule_vehicle,Customer_Vehilce],
+                where: {
+                    washer_id: washerId
+                }
+            });
+            if (getTask) {
+                successResponseWithData(
+                    res,
+                    "Assign task list",
+                    getTask
+                )
+            }
+            else {
+                notFoundResponse(res, "Not assign task by admin")
+            }
+        }
+    } catch (error) {
+        console.log('assignTaskList', error);
         badRequest(res, error);
     }
 }
