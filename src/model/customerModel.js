@@ -345,6 +345,36 @@ const Address = sequelize.define('parking_address',{
 Schedule_vehicle.belongsTo(Customer_Vehilce,{foreignKey: 'vehicle_id'});
 Customer_Vehilce.hasMany(Schedule_vehicle,{foreignKey : 'id'});
 
+
+const Complaint = sequelize.define('customer_complaint',{
+    user_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    image : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    description : {
+        type : DataTypes.STRING,
+        allowNull : false
+    },
+    status : {
+        type : Sequelize.ENUM("Resolve", "Revert_payment", "Pending","Canceled"),
+        defaultValue: "Pending"
+    },
+    created_at: {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at:{
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    }
+},{tableName:"customer_complaint"});
+
+
+
 module.exports = {
     Customer,
     State,
@@ -354,5 +384,6 @@ module.exports = {
     Wallet,
     Schedule_vehicle,
     Slider,
-    Address
+    Address,
+    Complaint
 }

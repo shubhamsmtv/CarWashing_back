@@ -32,4 +32,5 @@ app.post('/feedback', jwtToken.validateToken, customerController.feedback);
 // app.post('/notification', jwtToken.validateToken , customerController.notification);
 app.post('/service_payment', jwtToken.validateToken, customerController.service_payment);
 app.get('/transactionHistory', jwtToken.validateToken, customerController.transactionHistory);
+app.post('/addComplaint', jwtToken.validateToken, customerController.addComplaint);
 module.exports = app;

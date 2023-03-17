@@ -58,7 +58,7 @@ module.exports.notFoundResponse = (res,msg) => {
 		status: false,
 		message: msg,
 	};
-	return res.status(404).json(response);
+	return res.status(200).json(response);
 };
 
 module.exports.badRequest = (res,error) => {

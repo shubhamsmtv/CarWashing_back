@@ -11,7 +11,7 @@ app.post('/completeProfile', jwtToken.validateToken, washerController.completePr
 app.get('/getprofile',jwtToken.validateToken, washerController.getProfile);
 app.get('/assignTaskList', jwtToken.validateToken, washerController.assignTaskList);
 app.post('/service_status', jwtToken.validateToken, washerController.service_status);
-
+app.get('/taskHistory', jwtToken.validateToken, washerController.taskHistory);
 
 
 module.exports = app;

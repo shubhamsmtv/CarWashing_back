@@ -207,7 +207,7 @@ module.exports.completeProfile = (req, res) => {
             });
         }
         else {
-            res.status(404).json({ 'message': "image is required" });
+            res.status(400).json({ 'message': "image is required" });
         }
     } catch (error) {
         console.log('completeProfile', error);
@@ -302,6 +302,23 @@ module.exports.service_status = async(req,res) => {
         }
     } catch (error) {
         console.log('service_status Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.taskHistory = async(req,res) => {
+    try {
+        const washer_id = req.userId;
+        const history = await Washer_task.findAll({where: {washer_id:washer_id, status:"Completed"}});
+        if(history.length){
+            successResponseWithData(res,"Complele Task List",history);
+        }
+        else{
+            notFoundResponse(res,"Data Not Found");
+        }
+    } catch (error) {
+        console.log('taskHistory Error', error);
         badRequest(res, error);
     }
 }

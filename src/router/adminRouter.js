@@ -21,5 +21,6 @@ app.post('/assignTask', authValidation.validateToken, adminController.assignTask
 app.get('/dashboard', authValidation.validateToken, adminController.dashboard);
 app.post('/add_service_providers', authValidation.validateToken, adminController.add_service_providers);
 app.post('/registrations_control', authValidation.validateToken, adminController.registrations_control);
+
 module.exports = app;
 

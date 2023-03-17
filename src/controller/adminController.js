@@ -116,7 +116,7 @@ module.exports.getCustomer = async (req, res) => {
             limit = parseInt(10);
             offset = limit * (1 - 1);
         }
-        const customerData = await Customer.findAll({
+        const customerData = await Customer.findAndCountAll({
             attributes: { exclude: ['otp', 'status', 'created_at', 'updated_at'] },
             limit,
             offset,
@@ -304,7 +304,7 @@ module.exports.service_Providers_list = async (req, res) => {
             limit = parseInt(10);
             offset = limit * (1 - 1);
         }
-        const list_washers = await Service_Providers.findAll({
+        const list_washers = await Service_Providers.findAndCountAll({
             attributes: [
                 'id', 'full_name', 'email', 'phone_num', 'address', 'state', 'country', 'city', 'created_at',
                 [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'washer_profile/' + "',image)"), 'image']
@@ -496,7 +496,7 @@ module.exports.schedule_list = async (req, res) => {
             limit = parseInt(10);
             offset = limit * (1 - 1);
         }
-        const scheduleListData = await Schedule_vehicle.findAll({
+        const scheduleListData = await Schedule_vehicle.findAndCountAll({
             limit,
             offset,
             order: [['created_at', 'DESC']]
@@ -604,7 +604,7 @@ module.exports.add_service_providers = (req, res) => {
             });
         }
         else {
-            res.status(404).json({ 'message': "image is required" });
+            res.status(400).json({ 'message': "image is required" });
         }
     } catch (error) {
         console.log('add_service_providers Error', error);

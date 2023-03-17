@@ -1,6 +1,6 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
-const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address } = require('../model/customerModel');
+const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address, Complaint } = require('../model/customerModel');
 const { Vehicle_category, Service_payment } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
@@ -926,19 +926,22 @@ module.exports.service_payment = async(req,res) =>{
         const amount = req.body.amount;
         const totle_balance = await Wallet.sum('amount',{where : {user_id:user_id}});
         console.log('totle_balance',totle_balance);
-        console.log(totle_balance > 200)
+        console.log(totle_balance>200)
         if(totle_balance > 200){
             const wallet_balance = totle_balance - amount;
+            console.log(wallet_balance)
             if(wallet_balance > -1){
                 const debit_amount = await Wallet.update({amount:wallet_balance},{where:{user_id:user_id}});
                 if(debit_amount){
-                    console.log('schedul_id',schedul_id)
                     const data = {amount,schedul_id,user_id}
                     const pay_amount = await Service_payment.create(data);
                     if(pay_amount){
                         successResponse(res,'Payment Success');
                     }
                 }
+            }
+            else{
+                errorResponse(res,"Insufficient Balance ");
             }
         }
         else{
@@ -961,6 +964,48 @@ module.exports.transactionHistory = async(req,res) => {
         notFoundResponse(res,"Data not found");
     } catch (error) {
         console.log('service_payment Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+module.exports.addComplaint = (req,res) => {
+    try {
+        const schema = joi.object({
+            description: joi.string().required().messages({"string.empty": "description is required"}),
+        });
+        const {description} = req.body;
+        const complaint_data = {description}
+        validateSchema.joiValidation(schema,complaint_data);
+        complaint_data.user_id = req.userId;
+        if(req.files && req.files.image){
+            const image = req.files.image;
+            const imageName = image.name;
+            const imageExtantion = imageName.split('.').pop();
+            const imageNewName = uuid.v1() + '.' + imageExtantion;;
+            const uploadPath = 'public/complaintImg/' + imageNewName;
+            image.mv(uploadPath, async (error, result) => {
+                if (error) {
+                    console.log('error', error);
+                }
+                else {
+                    complaint_data.image = imageNewName
+                    const addWasher = await Complaint.create(complaint_data);
+                    if (addWasher) {
+                        successResponse(
+                            res,
+                            'Complain Added Successfuly',
+                        )
+                    }
+                }
+            });
+        }
+        else{
+            errorResponse(res,"image is required")
+        }
+    } catch (error) {
+        console.log('addComplaint Error', error);
         badRequest(res, error);
     }
 }
