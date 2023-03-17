@@ -6,5 +6,7 @@ const washers = require('./router/washerRouter');
 
 app.use('/customer', customerRouter);
 app.use('/admin', adminRouter);
-app.use('/washers', washers)
+app.use('/washers', washers);
+
+
 module.exports = app;

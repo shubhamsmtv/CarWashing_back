@@ -247,7 +247,11 @@ const Schedule_vehicle = sequelize.define('schedule_service',{
         type : DataTypes.FLOAT,
         allowNull : null
     },
-    schedule_date : {
+    start_date : {
+        type : DataTypes.DATE,
+        allowNull : false
+    },
+    end_date : {
         type : DataTypes.DATE,
         allowNull : false
     },

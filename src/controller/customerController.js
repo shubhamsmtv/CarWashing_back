@@ -1,27 +1,28 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
 const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address } = require('../model/customerModel');
-const { Vehicle_category } = require('../model/adminModel');
+const { Vehicle_category, Service_payment } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
+const moment = require('moment');
 const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes, velideUser } = require('../middleware/apiResponse');
-const FCM = require('fcm-node');
-const server_key = "AAAA3vCB6sE:APA91bHu-xdBFBFvcFvAU5kCVa23__HQjxyGTwRtMFE8zae2aSa-3cR47xQ_5mzA0q1LtDROz89QxwqVxAQlOalipoxgc-m006SRUdS0LM_a7a47yTbRE-8KQ3bjGch1_b4CVtKk8uHj"
-const fcm = new FCM(server_key);
+// const FCM = require('fcm-node');
+// const server_key = process.env.FCM_SERVER_KEY;
+// const fcm = new FCM(server_key);
 
 
 
 module.exports.otpVerify = async (req, res) => {
     try {
         const schema = joi.object({
-            phoneNum: joi.string().min(10).required(),
-            otp: joi.number().min(4).required(),
-            fcm_token: joi.string().required(),
-            device_type: joi.number().required(),
+            phoneNum: joi.string().min(10).required().messages({"string.empty": "phone_Num is required"}),
+            otp: joi.number().min(4).required().messages({"string.empty": "otp is required"}),
+            fcm_token: joi.string().required().messages({"string.empty": "fcm_token is required"}),
+            device_type: joi.number().required().messages({"string.empty": "device_type is required"}),
         });
         validateSchema.joiValidation(schema, req.body);
         const { fcm_token, device_type } = req.body;
@@ -85,7 +86,7 @@ module.exports.otpVerify = async (req, res) => {
 module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
-            phone_Num: joi.string().min(10).required(),
+            phone_Num: joi.string().min(10).required().messages({"string.empty": "phone_Num is required"}),
         });
         validateSchema.joiValidation(schema, req.body);
         const phone_num = req.body.phone_Num;
@@ -401,13 +402,13 @@ module.exports.getPincode = async (req, res) => {
 module.exports.addVehicle = async (req, res) => {
     try {
         const schema = joi.object({
-            vehicle_type: joi.string().required(),
-            vehicle_title: joi.string().required(),
-            vehicle_model: joi.string().required(),
-            vehicle_color: joi.string().required(),
-            license_num: joi.string().required(),
-            parking_num: joi.string().required(),
-            image: joi.string().required()
+            vehicle_type: joi.string().required().messages({"string.empty": "vehicle_type is required"}),
+            vehicle_title: joi.string().required().messages({"string.empty": "vehicle_title is required"}),
+            vehicle_model: joi.string().required().messages({"string.empty": "vehicle_model is required"}),
+            vehicle_color: joi.string().required().messages({"string.empty": "vehicle_color is required"}),
+            license_num: joi.string().required().messages({"string.empty": "license_num is required"}),
+            parking_num: joi.string().required().messages({"string.empty": "parking_num is required"}),
+            image: joi.string().required().messages({"string.empty": "image is required"})
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
@@ -557,9 +558,9 @@ module.exports.deleteVehicle = async (req, res) => {
 module.exports.addWallet = async (req, res) => {
     try {
         const schema = joi.object({
-            amount: joi.number().required(),
-            coupon_code: joi.string().required(),
-            payment_method: joi.string().required(),
+            amount: joi.number().required().messages({"string.empty": "amount is required"}),
+            coupon_code: joi.string().required().messages({"string.empty": "coupon_code is required"}),
+            payment_method: joi.string().required().messages({"string.empty": "payment_method is required"}),
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
@@ -654,11 +655,12 @@ module.exports.my_services = async (req, res) => {
         if (userId) {
             const myService = await Schedule_vehicle.findAll({
                 attributes: [
-                    'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
+                    'id', 'user_id', 'address', 'vehicle_id', 'start_date', 'end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
                     'license_num', 'status', 'image',
                     // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
                 ],
-                where: { user_id: userId }
+                where: { user_id: userId },
+                order: [['created_at', 'DESC']]
             });
             if (myService.length) {
                 successResponseWithData(
@@ -689,14 +691,15 @@ module.exports.my_services = async (req, res) => {
 module.exports.setschedule = async (req, res) => {
     try {
         const schema = joi.object({
-            schedule_date: joi.date().required(),
-            address: joi.string().required(),
-            vehicle_id: joi.string().required()
+            start_date: joi.string().required().messages({"string.empty": "start_date is required"}),
+            end_date: joi.string().required().messages({"string.empty": "end_date is required"}),
+            address: joi.string().required().messages({"string.empty": "address is required"}),
+            vehicle_id: joi.string().required().messages({"string.empty": "vehicle_id is required"})
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
-        const { schedule_date, address, vehicle_id } = req.body;
-        const data = { user_id, schedule_date, address, vehicle_id };
+        const { start_date, end_date, address, vehicle_id } = req.body;
+        const data = { user_id, start_date, end_date, address, vehicle_id };
         const vehicle_data = await Customer_Vehilce.findOne({ where: { id: vehicle_id } });
         data.vehicle_type = vehicle_data.vehicle_type;
         data.vehicle_title = vehicle_data.vehicle_title;
@@ -705,8 +708,11 @@ module.exports.setschedule = async (req, res) => {
         data.license_num = vehicle_data.license_num;
         data.image = vehicle_data.image;
         const createData = await Schedule_vehicle.create(data);
+        console.log('createData',createData);
+        // return false
+        // const findData = await Schedule_vehicle.findOne({where:{user_id:user_id}});
         if (createData) {
-            successResponse(res, "Vehicle Schedule Added Successfully");
+            successResponseWithData(res, "Vehicle Schedule Added Successfully",createData);
         }
         else {
             errorResponse(res, "Something Went Wrong")
@@ -723,7 +729,7 @@ module.exports.home = async (req, res) => {
         const userId = req.userId;
         const completed_services = await Schedule_vehicle.findAll({
             attributes: [
-                'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color', 'image',
+                'id', 'user_id', 'address', 'vehicle_id', 'start_date','end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color', 'image',
                 'license_num', 'status',
                 // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
             ],
@@ -735,7 +741,7 @@ module.exports.home = async (req, res) => {
         });
         const inprocess_services = await Schedule_vehicle.findAll({
             attributes: [
-                'id', 'user_id', 'address', 'vehicle_id', 'schedule_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
+                'id', 'user_id', 'address', 'vehicle_id', 'start_date','end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
                 'license_num', 'status', 'image',
                 // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
             ],
@@ -795,10 +801,10 @@ module.exports.addParkingAdrress = async (req, res) => {
     try {
         const user_id = req.userId;
         const schema = joi.object({
-            address: joi.string().required(),
-            building: joi.string().required(),
-            society_name: joi.string().required(),
-            lot_num: joi.string().required(),
+            address: joi.string().required().messages({"string.empty": "address is required"}),
+            building: joi.string().required().messages({"string.empty": "building is required"}),
+            society_name: joi.string().required().messages({"string.empty": "society_name is required"}),
+            lot_num: joi.string().required().messages({"string.empty": "lot_num is required"}),
         });
         validateSchema.joiValidation(schema, req.body);
         const { address, building, society_name, lot_num } = req.body;
@@ -870,45 +876,91 @@ module.exports.feedback = async (req, res) => {
 }
 
 
-module.exports.notification = (req, res) => {
-    try {
-        const registerToken = req.body.registerToken;
-        const title = req.body.title;
-        if (registerToken) {
-            var msg = {}
-            var data = {
-                package: "kuch bhi",
-                userId: 5,
-                eventId: 4,
-            }
-            msg.to = req.body.registerToken
-            msg.data = {
-                my_key: 'my value',
-                contents: "abcv/",
-                body: "Body 9",
-                title: "title 9",
-                package:"EventData.packagetype",
-                userId:2,
-                eventId:9
-            }
+// module.exports.notification = (req, res) => {
+//     try {
+//         const registerToken = req.body.registerToken;
+//         const title = req.body.title;
+//         if (registerToken) {
+//             var msg = {}
+//             var data = {
+//                 package: "kuch bhi",
+//                 userId: 5,
+//                 eventId: 4,
+//             }
+//             msg.to = req.body.registerToken
+//             msg.data = {
+//                 my_key: 'my value',
+//                 contents: "abcv/",
+//                 body: "Body 9",
+//                 title: "title 9",
+//                 package:"EventData.packagetype",
+//                 userId:2,
+//                 eventId:9
+//             }
             
 
-            fcm.send(msg, function (err, response) {
-                if (err) {
-                    console.log("Something has gone wrong!", err);
-                } else {
-                    console.log("Successfully sent with response: ", response);
+//             fcm.send(msg, function (err, response) {
+//                 if (err) {
+//                     console.log("Something has gone wrong!", err);
+//                 } else {
+//                     console.log("Successfully sent with response: ", response);
+//                 }
+//             });
+//         }
+//         else {
+//             errorResponse(
+//                 res,
+//                 "registerToken is require",
+//             )
+//         }
+//     } catch (error) {
+//         console.log('notification Error', error);
+//         badRequest(res, error);
+//     }
+// }
+
+module.exports.service_payment = async(req,res) =>{
+    try {
+        const user_id = req.userId;
+        const schedul_id = req.body.schedul_id;
+        const amount = req.body.amount;
+        const totle_balance = await Wallet.sum('amount',{where : {user_id:user_id}});
+        console.log('totle_balance',totle_balance);
+        console.log(totle_balance > 200)
+        if(totle_balance > 200){
+            const wallet_balance = totle_balance - amount;
+            if(wallet_balance > -1){
+                const debit_amount = await Wallet.update({amount:wallet_balance},{where:{user_id:user_id}});
+                if(debit_amount){
+                    console.log('schedul_id',schedul_id)
+                    const data = {amount,schedul_id,user_id}
+                    const pay_amount = await Service_payment.create(data);
+                    if(pay_amount){
+                        successResponse(res,'Payment Success');
+                    }
                 }
-            });
+            }
         }
-        else {
-            errorResponse(
-                res,
-                "registerToken is require",
-            )
+        else{
+            errorResponse(res,"Insufficient Balance ");
         }
     } catch (error) {
-        console.log('notification Error', error);
+        console.log('service_payment Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.transactionHistory = async(req,res) => {
+    try {
+        const user_id = req.userId;
+        const historyData = await Service_payment.findAll({where:{user_id:user_id}});
+        if(historyData.length){
+            successResponseWithData(res,"Transaction History",historyData);
+        }
+        notFoundResponse(res,"Data not found");
+    } catch (error) {
+        console.log('service_payment Error', error);
         badRequest(res, error);
     }
 }

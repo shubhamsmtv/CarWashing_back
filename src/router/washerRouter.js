@@ -10,5 +10,8 @@ app.post('/washerOtpverify', washerController.otpVerify)
 app.post('/completeProfile', jwtToken.validateToken, washerController.completeProfile);
 app.get('/getprofile',jwtToken.validateToken, washerController.getProfile);
 app.get('/assignTaskList', jwtToken.validateToken, washerController.assignTaskList);
-// app.get('/workStatus', jwtToken.validateToken, washerController.workStatus);
+app.post('/service_status', jwtToken.validateToken, washerController.service_status);
+
+
+
 module.exports = app;

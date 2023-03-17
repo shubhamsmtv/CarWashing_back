@@ -1,4 +1,4 @@
-const { sequelize, Sequelize: { DataTypes } } = require('../helper/db');
+const { sequelize, Sequelize,Sequelize: { DataTypes } } = require('../helper/db');
 const {Schedule_vehicle,Customer_Vehilce} = require('../model/customerModel');
 
 const Vehicle_category = sequelize.define('vehicle_category', {
@@ -74,8 +74,67 @@ const Washer_task = sequelize.define('washer_assign_task',{
 Washer_task.belongsTo(Schedule_vehicle,{foreignKey: 'schedul_id'});
 Schedule_vehicle.hasMany(Washer_task,{foreignKey : 'id'});
 
+const Service_payment = sequelize.define('service_payment',{
+    user_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    schedul_id : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    transaction_id : {
+        type : DataTypes.NUMBER,
+        defaultValue : '3343781197799'
+    },
+    txn_type : {
+        type : Sequelize.ENUM('Credit','Debit'),
+        defaultValue : 'Debit'
+    },
+    payment_method : {
+        type : DataTypes.STRING,
+        defaultValue : 'wallet'
+    },
+    amount : {
+        type : DataTypes.NUMBER,
+        allowNull : false
+    },
+    created_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    },
+    updated_at : {
+        type : DataTypes.DATE,
+        allowNull : new Date()
+    }
+},{tableName:"service_payment"})
+
+
+
+const Setting = sequelize.define('setting',{
+    key_name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    value: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        allowNull: new Date()
+    },
+    updated_at: {
+        type: DataTypes.DATE,
+        allowNull: new Date()
+    }
+},{tableName:'setting'});
+
+
 module.exports = {
     Vehicle_category,
     Admin,
-    Washer_task
+    Washer_task,
+    Service_payment,
+    Setting
 }

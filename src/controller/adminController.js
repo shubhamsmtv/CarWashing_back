@@ -1,5 +1,5 @@
 const uuid = require('uuid');
-const { Vehicle_category, Admin, Washer_task } = require('../model/adminModel');
+const { Vehicle_category, Admin, Washer_task, Setting } = require('../model/adminModel');
 const { Customer, Schedule_vehicle, Customer_Vehilce } = require('../model/customerModel');
 const { Service_Providers } = require('../model/washerModel');
 const joi = require('joi');
@@ -9,12 +9,13 @@ const sha1 = require('sha1');
 const jwt = require('jsonwebtoken');
 const { loggingRespons, errorResponse, notFoundResponse, badRequest, successResponse, adminLoggingRespons, successResponseWithData } = require('../middleware/apiResponse');
 const { sequelize } = require('../helper/db');
+const send_mailer = require('../helper/nodemailer');
 
 module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
-            email: joi.string().email().required(),
-            password: joi.string().required()
+            email: joi.string().email().required().messages({"string.empty": "email is required"}),
+            password: joi.string().required().messages({"string.empty": "password is required"})
         });
         validationJoi.joiValidation(schema, req.body);
         const email = req.body.email;
@@ -106,8 +107,20 @@ module.exports.vehicleCategory = (req, res) => {
 
 module.exports.getCustomer = async (req, res) => {
     try {
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
         const customerData = await Customer.findAll({
-            attributes: { exclude: ['otp', 'status', 'createDate', 'updateDate'] }
+            attributes: { exclude: ['otp', 'status', 'created_at', 'updated_at'] },
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
         });
         if (customerData) {
             successResponseWithData(
@@ -196,15 +209,15 @@ module.exports.updateCustomer = async (req, res) => {
 module.exports.addCustomer = async (req, res) => {
     try {
         const schema = joi.object({
-            fullName: joi.string().min(2).required(),
-            email: joi.string().min(2).required(),
-            phone_num: joi.string().min(2).required(),
-            address: joi.string().min(2).required(),
-            wing: joi.string().min(2).required(),
-            society: joi.string().min(2).required(),
-            state: joi.string().min(2).required(),
-            city: joi.string().min(2).required(),
-            pincode: joi.string().min(2).required(),
+            fullName: joi.string().min(2).required().messages({"string.empty": "fullName is required"}),
+            email: joi.string().min(2).required().messages({"string.empty": "email is required"}),
+            phone_num: joi.string().min(2).required().messages({"string.empty": "phone_num is required"}),
+            address: joi.string().min(2).required().messages({"string.empty": "address is required"}),
+            wing: joi.string().min(2).required().messages({"string.empty": "wing is required"}),
+            society: joi.string().min(2).required().messages({"string.empty": "society is required"}),
+            state: joi.string().min(2).required().messages({"string.empty": "state is required"}),
+            city: joi.string().min(2).required().messages({"string.empty": "city is required"}),
+            pincode: joi.string().min(2).required().messages({"string.empty": "pincode is required"}),
         });
         validationJoi.joiValidation(schema, req.body);
         const status = true
@@ -282,14 +295,26 @@ module.exports.getProfile = async (req, res) => {
 
 module.exports.service_Providers_list = async (req, res) => {
     try {
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
         const list_washers = await Service_Providers.findAll({
             attributes: [
                 'id', 'full_name', 'email', 'phone_num', 'address', 'state', 'country', 'city', 'created_at',
                 [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'washer_profile/' + "',image)"), 'image']
-            ]
+            ],
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
         });
         if (list_washers) {
-            console.log('list_washers',list_washers)
+            console.log('list_washers', list_washers)
             successResponseWithData(
                 res,
                 "Service provider list",
@@ -374,7 +399,7 @@ module.exports.update_service_providers = async (req, res) => {
                 }
                 else {
                     data.image = imageNewName
-                    console.log('dattt@@@@@@@@@@@@@@@',data);
+                    console.log('dattt@@@@@@@@@@@@@@@', data);
                     const addWasher = await Service_Providers.update(data, { where: { id: id } });
                     if (addWasher) {
                         successResponse(
@@ -386,7 +411,7 @@ module.exports.update_service_providers = async (req, res) => {
             });
         }
         else {
-            console.log('daattataa',data);
+            console.log('daattataa', data);
             const addWasher = await Service_Providers.update(data, { where: { id: id } });
             if (addWasher) {
                 successResponse(
@@ -462,7 +487,20 @@ module.exports.delete_service_providers = async (req, res) => {
 
 module.exports.schedule_list = async (req, res) => {
     try {
-        const scheduleListData = await Schedule_vehicle.findAll(
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
+        const scheduleListData = await Schedule_vehicle.findAll({
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
+        }
             // {include: [Customer_Vehilce]}
         );
         if (scheduleListData) {
@@ -485,14 +523,15 @@ module.exports.schedule_list = async (req, res) => {
 module.exports.assignTask = async (req, res) => {
     try {
         const schema = joi.object({
-            schedul_id: joi.number().required(),
-            washer_id: joi.number().required(),
+            schedul_id: joi.number().required().messages({"string.empty": "schedul_id is required"}),
+            washer_id: joi.number().required().messages({"string.empty": "washer_id is required"}),
         });
         validationJoi.joiValidation(schema, req.body);
         const { schedul_id, washer_id } = req.body;
         const data = { schedul_id, washer_id };
         const addtask = await Washer_task.create(data);
         if (addtask) {
+            await Schedule_vehicle.update({ status: 'confirmed' }, { where: { schedul_id: schedul_id } });
             successResponse(res, "Task Assign Successfuly");
         }
         else {
@@ -504,20 +543,105 @@ module.exports.assignTask = async (req, res) => {
     }
 }
 
-module.exports.dashboard = async(req,res) => {
+module.exports.dashboard = async (req, res) => {
     try {
         const totleCustomer = await Customer.count('fullName');
-        console.log('totleCustomer',totleCustomer)
+        console.log('totleCustomer', totleCustomer)
         const totleWasher = await Service_Providers.count('full_name');
         const array = [{
             totleCustomer,
             totleWasher
         }]
-        if(totleCustomer && totleWasher){
-            successResponseWithData(res,"Totle Data",array);
+        if (totleCustomer && totleWasher) {
+            successResponseWithData(res, "Totle Data", array);
         }
     } catch (error) {
         console.log('dashboard Error', error);
         badRequest(res, error);
     }
 }
+
+
+module.exports.add_service_providers = (req, res) => {
+    try {
+        const schema = joi.object({
+            full_name: joi.string().min(3).required().messages({"string.empty": "full_name is required"}),
+            email: joi.string().email().min(3).required().messages({"string.empty": "email is required"}),
+            phone_num: joi.number().min(10).required().messages({"string.empty": "phone_num is required"}),
+            address: joi.string().min(3).required().messages({"string.empty": "address is required"}),
+            state: joi.string().min(1).required().messages({"string.empty": "state is required"}),
+            country: joi.string().min(3).required().messages({"string.empty": "country is required"}),
+            city: joi.string().min(3).required().messages({"string.empty": "city is required"}),
+        });
+        const { full_name, email, phone_num, address, state, country, city } = req.body;
+        const data = { full_name, email, phone_num, address, state, country, city }
+        validationJoi.joiValidation(schema, data);
+        data.Pro_status = true
+        if (req.files && req.files.image) {
+            const image = req.files.image;
+            const imageName = image.name;
+            const imageExtantion = imageName.split('.').pop();
+            const imageNewName = uuid.v1() + '.' + imageExtantion;;
+            const uploadPath = 'public/washer_profile/' + imageNewName;
+            image.mv(uploadPath, async (error, result) => {
+                if (error) {
+                    console.log('error', error);
+                }
+                else {
+                    data.image = imageNewName
+                    const addWasher = await Service_Providers.create(data);
+                    if (addWasher) {
+                        const subject = 'Login Credentials';
+                        const text = "Hello" + ' ' + full_name + ' ' +
+                            'Your credentials is ' + phone_num + '.'
+                        await send_mailer.sendMail(email, subject, text);
+                        successResponse(
+                            res,
+                            'Profile Update Successfuly',
+                        )
+                    }
+                }
+            });
+        }
+        else {
+            res.status(404).json({ 'message': "image is required" });
+        }
+    } catch (error) {
+        console.log('add_service_providers Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+
+module.exports.registrations_control = async (req, res) => {
+    try {
+        const user_id = req.userId;
+        const status = req.body.status;
+        console.log('status', status)
+        if (status) {
+            const statusdata = await Setting.update({ value: status }, { where: { id: 1 } });
+            if (statusdata) {
+                successResponse(
+                    res,
+                    'Status'
+                )
+            }
+            else {
+                errorResponse(res, "Somthing Went Wrong")
+            }
+        }
+        else {
+            errorResponse(res, "status is required")
+        }
+    } catch (error) {
+        console.log('status Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+
+
