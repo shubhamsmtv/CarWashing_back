@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const { loggingRespons, errorResponse, notFoundResponse, badRequest, successResponse, adminLoggingRespons, successResponseWithData } = require('../middleware/apiResponse');
 const { sequelize } = require('../helper/db');
 const send_mailer = require('../helper/nodemailer');
+const otoGenerator = require('otp-generator');
 
 module.exports.login = async (req, res) => {
     try {
@@ -532,7 +533,7 @@ module.exports.assignTask = async (req, res) => {
         const data = { schedul_id, washer_id };
         const addtask = await Washer_task.create(data);
         if (addtask) {
-            await Schedule_vehicle.update({ status: 'confirmed' }, { where: {id: schedul_id } });
+            await Schedule_vehicle.update({ status: 'confirmed' }, { where: { id: schedul_id } });
             successResponse(res, "Task Assign Successfuly");
         }
         else {
@@ -754,3 +755,114 @@ module.exports.contact_us = async (req, res) => {
         res.status(500).json({ error: 'Something went wrong' });
     }
 }
+
+module.exports.loginAdmin = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().min(1).required().messages({ "string.empty": "email is required" }),
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const email = req.body.email;
+        const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+        const getEmail = await Admin.findOne({ where: { email: email } });
+        console.log('email', email);
+        if (getEmail) {
+            const subject = 'Rest passeord otp'
+            const text = 'Hello ' + getEmail.name + 'Youer OTP is' + otp + '.'
+            send_mailer.sendMail(email, subject, text);
+            const updateOtp = await Admin.update({ otp: otp }, { where: { email: email } });
+            if (updateOtp) {
+                successResponse(res, "OTP send Your Email");
+            }
+        }
+
+        else {
+            notFoundResponse(res, "Email not exsistt")
+        }
+    }
+    catch (error) {
+        console.log('error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.otpVerifyAdmin = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().min(10).required().messages({ "string.empty": "email is required" }),
+            otp: joi.number().min(4).required().messages({ "string.empty": "otp is required" }),
+
+        });
+        // validateSchema.joiValidation(schema, req.body);
+        const otp = req.body.otp;
+        const email = req.body.email;
+        const getAdmin = await Admin.findOne({ where: { email: email } });
+        if (getAdmin) {
+            if (getAdmin.otp == otp) {
+                await Admin.update(otp, { where: { email: email } })
+                if (getAdmin && getAdmin.otp) {
+                    loggingRespons(
+                        res,
+                        "OTP is verify",
+                    )
+                }
+                else {
+                    loggingRespons(
+                        res,
+                        "OTP is verify",
+                    )
+                }
+            }
+            else {
+                notFoundResponse(res, "Invalid otp");
+            }
+        }
+        else {
+            errorResponse(
+                res,
+                "Mobile number not exist"
+            )
+        }
+    } catch (error) {
+        console.log('otpVerify Error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.resetPassword = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().email().required().messages({ "string.empty": "email is required" }),
+            oldpassword: joi.string().required().messages({ "string.empty": "oldpassword is required" }),
+            newpassword: joi.string().required().messages({ "string.empty": "newpassword is required" })
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const email = req.body.email;
+        const oldpassword = sha1(req.body.oldpassword);
+        const newpassword = sha1(req.body.newpassword);
+        const getAdmin = await Admin.findOne({ where: { email: email } });
+        if (getAdmin) {
+            if (getAdmin.password == oldpassword) {
+                await Admin.update({password:newpassword}, { where: { email: email } })
+                    loggingRespons(
+                        res,
+                        "password reset successfully",
+                    )
+                }
+            }
+    
+        else {
+            errorResponse(
+                res,
+                'Password Does not match'
+            )
+        }
+    }    
+
+        catch (error) {
+            console.log('Error', error);
+            badRequest(res, error);
+        }
+    }
+
+

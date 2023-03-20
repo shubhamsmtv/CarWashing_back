@@ -25,7 +25,8 @@ app.get('/view_payment', authValidation.validateToken, adminController.view_paym
 app.get('/viewComplaint', authValidation.validateToken, adminController.viewComplaint);
 app.post('/about_us', authValidation.validateToken, adminController.about_us);
 app.get('/contact_us', authValidation.validateToken, adminController.contact_us);
-
-
+app.post('/loginAdmin', adminController.loginAdmin);
+app.post('/otpVerifyAdmin', adminController.otpVerifyAdmin);
+app.post('/resetPassword',adminController.resetPassword);
 module.exports = app;
 

@@ -38,6 +38,10 @@ const Admin = sequelize.define('admin',{
         type: DataTypes.STRING,
         allowNull: false
     },
+    otp: {
+        type: DataTypes.NUMBER,
+        allowNull: true
+    },
     created_at: {
         type: DataTypes.DATE,
         allowNull: new Date()

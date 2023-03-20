@@ -1132,3 +1132,4 @@ module.exports.get_about_us = async (req, res) => {
         badRequest(res, error);
     }
 }
+
