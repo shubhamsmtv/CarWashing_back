@@ -10,7 +10,7 @@ module.exports.validateToken = async(req, res, next)=> {
             const splitToken = token.split(' ').pop();
             const veryifyToken = jwt.verify(splitToken, process.env.SECRET_KEY);
             req.userId = veryifyToken.userId
-            req.isVerify = veryifyToken.isVerify
+            // req.isVerify = veryifyToken.isVerify
             // console.log('tokenNum',veryifyToken)
             next();
         }

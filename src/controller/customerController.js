@@ -1,7 +1,7 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
 const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address, Complaint } = require('../model/customerModel');
-const { Vehicle_category, Service_payment } = require('../model/adminModel');
+const { Vehicle_category, Service_payment, ContactUs, AboutUs } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
@@ -19,10 +19,10 @@ const { successResponseWithData, errorResponse, successResponse, notFoundRespons
 module.exports.otpVerify = async (req, res) => {
     try {
         const schema = joi.object({
-            phoneNum: joi.string().min(10).required().messages({"string.empty": "phone_Num is required"}),
-            otp: joi.number().min(4).required().messages({"string.empty": "otp is required"}),
-            fcm_token: joi.string().required().messages({"string.empty": "fcm_token is required"}),
-            device_type: joi.number().required().messages({"string.empty": "device_type is required"}),
+            phoneNum: joi.string().min(10).required().messages({ "string.empty": "phone_Num is required" }),
+            otp: joi.number().min(4).required().messages({ "string.empty": "otp is required" }),
+            fcm_token: joi.string().required().messages({ "string.empty": "fcm_token is required" }),
+            device_type: joi.number().required().messages({ "string.empty": "device_type is required" }),
         });
         validateSchema.joiValidation(schema, req.body);
         const { fcm_token, device_type } = req.body;
@@ -86,7 +86,7 @@ module.exports.otpVerify = async (req, res) => {
 module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
-            phone_Num: joi.string().min(10).required().messages({"string.empty": "phone_Num is required"}),
+            phone_Num: joi.string().min(10).required().messages({ "string.empty": "phone_Num is required" }),
         });
         validateSchema.joiValidation(schema, req.body);
         const phone_num = req.body.phone_Num;
@@ -375,7 +375,9 @@ module.exports.getPincode = async (req, res) => {
         const state_id = req.body.stateID;
         const cities = req.body.cityName;
         if (state_id && cities) {
-            const GetPincode = await Pincode.findAll({ where: { city: cities, state_id: state_id } });
+            const GetPincode = await Pincode.findAll({
+                where: { city: cities, state_id: state_id }
+            });
             if (GetPincode.length) {
                 successResponseWithData(
                     res,
@@ -402,13 +404,13 @@ module.exports.getPincode = async (req, res) => {
 module.exports.addVehicle = async (req, res) => {
     try {
         const schema = joi.object({
-            vehicle_type: joi.string().required().messages({"string.empty": "vehicle_type is required"}),
-            vehicle_title: joi.string().required().messages({"string.empty": "vehicle_title is required"}),
-            vehicle_model: joi.string().required().messages({"string.empty": "vehicle_model is required"}),
-            vehicle_color: joi.string().required().messages({"string.empty": "vehicle_color is required"}),
-            license_num: joi.string().required().messages({"string.empty": "license_num is required"}),
-            parking_num: joi.string().required().messages({"string.empty": "parking_num is required"}),
-            image: joi.string().required().messages({"string.empty": "image is required"})
+            vehicle_type: joi.string().required().messages({ "string.empty": "vehicle_type is required" }),
+            vehicle_title: joi.string().required().messages({ "string.empty": "vehicle_title is required" }),
+            vehicle_model: joi.string().required().messages({ "string.empty": "vehicle_model is required" }),
+            vehicle_color: joi.string().required().messages({ "string.empty": "vehicle_color is required" }),
+            license_num: joi.string().required().messages({ "string.empty": "license_num is required" }),
+            parking_num: joi.string().required().messages({ "string.empty": "parking_num is required" }),
+            image: joi.string().required().messages({ "string.empty": "image is required" })
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
@@ -558,26 +560,46 @@ module.exports.deleteVehicle = async (req, res) => {
 module.exports.addWallet = async (req, res) => {
     try {
         const schema = joi.object({
-            amount: joi.number().required().messages({"string.empty": "amount is required"}),
-            coupon_code: joi.string().required().messages({"string.empty": "coupon_code is required"}),
-            payment_method: joi.string().required().messages({"string.empty": "payment_method is required"}),
+            amount: joi.number().required().messages({ "string.empty": "amount is required" }),
+            coupon_code: joi.string().required().messages({ "string.empty": "coupon_code is required" }),
+            payment_method: joi.string().required().messages({ "string.empty": "payment_method is required" }),
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
         const { amount, coupon_code, payment_method } = req.body;
         const paymentData = { user_id, amount, coupon_code, payment_method }
-        const addpayment = await Wallet.create(paymentData);
-        if (addpayment) {
-            successResponseWithData(
-                res,
-                "Money will be added in wallet"
-            )
+        const findUser = await Wallet.findOne({ where: { user_id: user_id } });
+        if (findUser) {
+            wallet_balance = findUser.dataValues.amount
+            total_balance = parseInt(wallet_balance) + parseInt(amount)
+            const addpayment = await Wallet.update({ amount: total_balance }, { where: { user_id: user_id } });
+            if (addpayment) {
+                successResponseWithData(
+                    res,
+                    "Money will be added in wallet"
+                )
+            }
+            else {
+                errorResponse(
+                    res,
+                    "Something Went Wrong",
+                )
+            }
         }
         else {
-            errorResponse(
-                res,
-                "Something Went Wrong",
-            )
+            const addpayment = await Wallet.create(paymentData);
+            if (addpayment) {
+                successResponseWithData(
+                    res,
+                    "Money will be added in wallet"
+                )
+            }
+            else {
+                errorResponse(
+                    res,
+                    "Something Went Wrong",
+                )
+            }
         }
     } catch (error) {
         console.log('addWallet Error', error);
@@ -691,10 +713,10 @@ module.exports.my_services = async (req, res) => {
 module.exports.setschedule = async (req, res) => {
     try {
         const schema = joi.object({
-            start_date: joi.string().required().messages({"string.empty": "start_date is required"}),
-            end_date: joi.string().required().messages({"string.empty": "end_date is required"}),
-            address: joi.string().required().messages({"string.empty": "address is required"}),
-            vehicle_id: joi.string().required().messages({"string.empty": "vehicle_id is required"})
+            start_date: joi.string().required().messages({ "string.empty": "start_date is required" }),
+            end_date: joi.string().required().messages({ "string.empty": "end_date is required" }),
+            address: joi.string().required().messages({ "string.empty": "address is required" }),
+            vehicle_id: joi.string().required().messages({ "string.empty": "vehicle_id is required" })
         });
         validateSchema.joiValidation(schema, req.body);
         const user_id = req.userId;
@@ -708,11 +730,11 @@ module.exports.setschedule = async (req, res) => {
         data.license_num = vehicle_data.license_num;
         data.image = vehicle_data.image;
         const createData = await Schedule_vehicle.create(data);
-        console.log('createData',createData);
+        console.log('createData', createData);
         // return false
         // const findData = await Schedule_vehicle.findOne({where:{user_id:user_id}});
         if (createData) {
-            successResponseWithData(res, "Vehicle Schedule Added Successfully",createData);
+            successResponseWithData(res, "Vehicle Schedule Added Successfully", createData);
         }
         else {
             errorResponse(res, "Something Went Wrong")
@@ -729,7 +751,7 @@ module.exports.home = async (req, res) => {
         const userId = req.userId;
         const completed_services = await Schedule_vehicle.findAll({
             attributes: [
-                'id', 'user_id', 'address', 'vehicle_id', 'start_date','end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color', 'image',
+                'id', 'user_id', 'address', 'vehicle_id', 'start_date', 'end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color', 'image',
                 'license_num', 'status',
                 // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
             ],
@@ -741,7 +763,7 @@ module.exports.home = async (req, res) => {
         });
         const inprocess_services = await Schedule_vehicle.findAll({
             attributes: [
-                'id', 'user_id', 'address', 'vehicle_id', 'start_date','end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
+                'id', 'user_id', 'address', 'vehicle_id', 'start_date', 'end_date', 'vehicle_type', 'vehicle_title', 'vehicle_model', 'vehicle_color',
                 'license_num', 'status', 'image',
                 // [sequelize.literal("CONCAT('" + process.env.IMAGE_BASE_URl + 'upImage/' + "',image)"), 'image']
             ],
@@ -801,10 +823,10 @@ module.exports.addParkingAdrress = async (req, res) => {
     try {
         const user_id = req.userId;
         const schema = joi.object({
-            address: joi.string().required().messages({"string.empty": "address is required"}),
-            building: joi.string().required().messages({"string.empty": "building is required"}),
-            society_name: joi.string().required().messages({"string.empty": "society_name is required"}),
-            lot_num: joi.string().required().messages({"string.empty": "lot_num is required"}),
+            address: joi.string().required().messages({ "string.empty": "address is required" }),
+            building: joi.string().required().messages({ "string.empty": "building is required" }),
+            society_name: joi.string().required().messages({ "string.empty": "society_name is required" }),
+            lot_num: joi.string().required().messages({ "string.empty": "lot_num is required" }),
         });
         validateSchema.joiValidation(schema, req.body);
         const { address, building, society_name, lot_num } = req.body;
@@ -836,7 +858,7 @@ module.exports.afterService = async (req, res) => {
                 }
             });
             if (serviceData) {
-                successResponseWithData(res, "Afetr Service data", serviceData);
+                successResponseWithData(res, "After Service data", serviceData);
             }
             else {
                 notFoundResponse(res, "Data Not Found");
@@ -897,7 +919,7 @@ module.exports.feedback = async (req, res) => {
 //                 userId:2,
 //                 eventId:9
 //             }
-            
+
 
 //             fcm.send(msg, function (err, response) {
 //                 if (err) {
@@ -919,33 +941,36 @@ module.exports.feedback = async (req, res) => {
 //     }
 // }
 
-module.exports.service_payment = async(req,res) =>{
+module.exports.service_payment = async (req, res) => {
     try {
         const user_id = req.userId;
         const schedul_id = req.body.schedul_id;
         const amount = req.body.amount;
-        const totle_balance = await Wallet.sum('amount',{where : {user_id:user_id}});
-        console.log('totle_balance',totle_balance);
-        console.log(totle_balance>200)
-        if(totle_balance > 200){
-            const wallet_balance = totle_balance - amount;
-            console.log(wallet_balance)
-            if(wallet_balance > -1){
-                const debit_amount = await Wallet.update({amount:wallet_balance},{where:{user_id:user_id}});
-                if(debit_amount){
-                    const data = {amount,schedul_id,user_id}
+        const transaction_id = uuid.v1();
+        const totle_balance = await Wallet.sum('amount', { where: { user_id: user_id } });
+        if (totle_balance > 0) {
+            const wallet_balance = parseInt(totle_balance) - parseInt(amount);
+            console.log('wallet_balance')
+            if (wallet_balance > 0) {
+                const debit_amount = await Wallet.update({ amount: wallet_balance }, { where: { user_id: user_id } });
+                if (debit_amount.length) {
+                    const data = { amount, schedul_id, user_id, transaction_id }
                     const pay_amount = await Service_payment.create(data);
-                    if(pay_amount){
-                        successResponse(res,'Payment Success');
+                    // console.log(pay_amount)
+                    if (pay_amount) {
+                        successResponseWithData(res, 'Payment Success', pay_amount);
                     }
                 }
+                else {
+                    errorResponse(res, "Somthing Went Wrong");
+                }
             }
-            else{
-                errorResponse(res,"Insufficient Balance ");
+            else {
+                errorResponse(res, "Insufficient Balance ");
             }
         }
-        else{
-            errorResponse(res,"Insufficient Balance ");
+        else {
+            errorResponse(res, "Insufficient Balance ");
         }
     } catch (error) {
         console.log('service_payment Error', error);
@@ -954,14 +979,14 @@ module.exports.service_payment = async(req,res) =>{
 }
 
 
-module.exports.transactionHistory = async(req,res) => {
+module.exports.transactionHistory = async (req, res) => {
     try {
         const user_id = req.userId;
-        const historyData = await Service_payment.findAll({where:{user_id:user_id}});
-        if(historyData.length){
-            successResponseWithData(res,"Transaction History",historyData);
+        const historyData = await Service_payment.findAll({ where: { user_id: user_id } });
+        if (historyData.length) {
+            successResponseWithData(res, "Transaction History", historyData);
         }
-        notFoundResponse(res,"Data not found");
+        notFoundResponse(res, "Data not found");
     } catch (error) {
         console.log('service_payment Error', error);
         badRequest(res, error);
@@ -970,16 +995,16 @@ module.exports.transactionHistory = async(req,res) => {
 
 
 
-module.exports.addComplaint = (req,res) => {
+module.exports.addComplaint = (req, res) => {
     try {
         const schema = joi.object({
-            description: joi.string().required().messages({"string.empty": "description is required"}),
+            description: joi.string().required().messages({ "string.empty": "description is required" }),
         });
-        const {description} = req.body;
-        const complaint_data = {description}
-        validateSchema.joiValidation(schema,complaint_data);
+        const { description } = req.body;
+        const complaint_data = { description }
+        validateSchema.joiValidation(schema, complaint_data);
         complaint_data.user_id = req.userId;
-        if(req.files && req.files.image){
+        if (req.files && req.files.image) {
             const image = req.files.image;
             const imageName = image.name;
             const imageExtantion = imageName.split('.').pop();
@@ -1001,11 +1026,109 @@ module.exports.addComplaint = (req,res) => {
                 }
             });
         }
-        else{
-            errorResponse(res,"image is required")
+        else {
+            errorResponse(res, "image is required")
         }
     } catch (error) {
         console.log('addComplaint Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.service_amount = async (req, res) => {
+    try {
+        // const schedule_id = req.params.schedul_id;
+        // console.log(schedule_id)
+        // const scheduleData = await Schedule_vehicle.findOne({ where: { id: schedule_id } });
+        // if (scheduleData) {
+        const schema = joi.object({
+            start_date : joi.string().required().messages({ "string.empty": "start_date is required" }),
+            end_date : joi.string().required().messages({ "string.empty": "end_date is required" })
+        });
+        validateSchema.joiValidation(schema,req.body);
+        const start_date = req.body.start_date;
+        const end_date = req.body.end_date;
+        // const start_date = "2023-03-17";
+        // const end_date = "2023-03-17"
+        if (start_date == end_date) {
+            console.log('!!!!!!!!!!!!!!!!!')
+            const Totle_amount = 1 * 100;
+            const response = {
+                one_day_charge: 100,
+                schedule_days: 1,
+                totle_amount: Totle_amount
+            }
+            successResponseWithData(res, "payment details", response);
+        }
+        else {
+            console.log('@@@@@@@@@@@@@@@@@@@@@@')
+            let expireDate = moment(end_date);
+            let currentDate = moment(start_date);
+            const Datediff = expireDate.diff(currentDate, 'days');
+            console.log('Datediff', Datediff)
+            if (Datediff > 0) {
+                const days = Datediff + 1
+                const Totle_amount = days * 100;
+                const response = {
+                    one_day_charge: 100,
+                    schedule_days: days,
+                    total_amount: Totle_amount
+                }
+                successResponseWithData(res, "payment details", response);
+            }
+            else {
+                notFoundResponse(res, "Schedule not Found")
+            }
+        }
+        // }
+        // else {
+        //     notFoundResponse(res, "Data Not Found");
+        // }
+    } catch (error) {
+        console.log('service_amount Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.addContactUs = async (req, res) => {
+    try {
+        const schema = joi.object({
+            name: joi.string().required().messages({ "string.empty": "name is required" }),
+            email: joi.string().email().required().messages({ "string.empty": "name is required" }),
+            message: joi.string().required().messages({ "string.empty": "name is required" }),
+        });
+        validateSchema.joiValidation(schema, req.body);
+        const { name, email, message } = req.body;
+        const contactData = { name, email, message };
+        const addData = await ContactUs.create(contactData);
+        if (addData) {
+            successResponse(res, "Detail add Successfully");
+        }
+        else {
+            errorResponse(res, "Somthing Went Wrong");
+        }
+    } catch (error) {
+        console.log('addContactUs Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.get_about_us = async (req, res) => {
+    try {
+        const get_aboutus = await AboutUs.findAll({
+            order: [['created_at', 'DESC']]
+        });
+        if (get_aboutus.length) {
+            successResponseWithData(res, "About us list", get_aboutus);
+        }
+        else {
+            notFoundResponse(res, "Data Not Found");
+        }
+    } catch (error) {
+        console.log('get_about_us Error', error);
         badRequest(res, error);
     }
 }

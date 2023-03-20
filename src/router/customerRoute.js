@@ -33,4 +33,10 @@ app.post('/feedback', jwtToken.validateToken, customerController.feedback);
 app.post('/service_payment', jwtToken.validateToken, customerController.service_payment);
 app.get('/transactionHistory', jwtToken.validateToken, customerController.transactionHistory);
 app.post('/addComplaint', jwtToken.validateToken, customerController.addComplaint);
+app.post('/service_amount', jwtToken.validateToken, customerController.service_amount);
+app.post('/add_contactUs', jwtToken.validateToken, customerController.addContactUs);
+app.get('/get_about_us', jwtToken.validateToken, customerController.get_about_us);
+
+
+
 module.exports = app;

@@ -85,7 +85,7 @@ const Service_payment = sequelize.define('service_payment',{
     },
     transaction_id : {
         type : DataTypes.NUMBER,
-        defaultValue : '3343781197799'
+        allowNull : false
     },
     txn_type : {
         type : Sequelize.ENUM('Credit','Debit'),
@@ -131,10 +131,47 @@ const Setting = sequelize.define('setting',{
 },{tableName:'setting'});
 
 
+const AboutUs = sequelize.define('aboutus', {
+    title: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    description: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        allowNull: new Date()
+    },
+    updated_at: {
+        type: DataTypes.DATE,
+        allowNull: new Date()
+    }
+},{tableName:'aboutus'});
+
+
+const ContactUs = sequelize.define('contactus', {
+    name: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    message: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+  },{tableName:'contactus'});
+
 module.exports = {
     Vehicle_category,
     Admin,
     Washer_task,
     Service_payment,
-    Setting
+    Setting,
+    AboutUs,
+    ContactUs
 }

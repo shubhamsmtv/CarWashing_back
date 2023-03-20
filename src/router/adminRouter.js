@@ -21,6 +21,11 @@ app.post('/assignTask', authValidation.validateToken, adminController.assignTask
 app.get('/dashboard', authValidation.validateToken, adminController.dashboard);
 app.post('/add_service_providers', authValidation.validateToken, adminController.add_service_providers);
 app.post('/registrations_control', authValidation.validateToken, adminController.registrations_control);
+app.get('/view_payment', authValidation.validateToken, adminController.view_payment);
+app.get('/viewComplaint', authValidation.validateToken, adminController.viewComplaint);
+app.post('/about_us', authValidation.validateToken, adminController.about_us);
+app.get('/contact_us', authValidation.validateToken, adminController.contact_us);
+
 
 module.exports = app;
 

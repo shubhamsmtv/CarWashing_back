@@ -71,12 +71,12 @@ const Service_Providers = sequelize.define("washers",{
         allowNull: true
     },
     created_at:{
-        type:DataTypes.STRING,
-        allowNull: true
+        type:DataTypes.DATE,
+        defaultValue : new Date()
     },
     updated_at:{
-        type:DataTypes.STRING,
-        allowNull: true
+        type:DataTypes.DATE,
+        defaultValue : new Date()
     },
 },{tableName:'washers'});
 

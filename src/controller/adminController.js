@@ -1,6 +1,6 @@
 const uuid = require('uuid');
-const { Vehicle_category, Admin, Washer_task, Setting } = require('../model/adminModel');
-const { Customer, Schedule_vehicle, Customer_Vehilce } = require('../model/customerModel');
+const { Vehicle_category, Admin, Washer_task, Setting, Service_payment, AboutUs, ContactUs } = require('../model/adminModel');
+const { Customer, Schedule_vehicle, Customer_Vehilce, Complaint } = require('../model/customerModel');
 const { Service_Providers } = require('../model/washerModel');
 const joi = require('joi');
 const validationJoi = require('../helper/joiValidation');
@@ -14,8 +14,8 @@ const send_mailer = require('../helper/nodemailer');
 module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
-            email: joi.string().email().required().messages({"string.empty": "email is required"}),
-            password: joi.string().required().messages({"string.empty": "password is required"})
+            email: joi.string().email().required().messages({ "string.empty": "email is required" }),
+            password: joi.string().required().messages({ "string.empty": "password is required" })
         });
         validationJoi.joiValidation(schema, req.body);
         const email = req.body.email;
@@ -209,15 +209,15 @@ module.exports.updateCustomer = async (req, res) => {
 module.exports.addCustomer = async (req, res) => {
     try {
         const schema = joi.object({
-            fullName: joi.string().min(2).required().messages({"string.empty": "fullName is required"}),
-            email: joi.string().min(2).required().messages({"string.empty": "email is required"}),
-            phone_num: joi.string().min(2).required().messages({"string.empty": "phone_num is required"}),
-            address: joi.string().min(2).required().messages({"string.empty": "address is required"}),
-            wing: joi.string().min(2).required().messages({"string.empty": "wing is required"}),
-            society: joi.string().min(2).required().messages({"string.empty": "society is required"}),
-            state: joi.string().min(2).required().messages({"string.empty": "state is required"}),
-            city: joi.string().min(2).required().messages({"string.empty": "city is required"}),
-            pincode: joi.string().min(2).required().messages({"string.empty": "pincode is required"}),
+            fullName: joi.string().min(2).required().messages({ "string.empty": "fullName is required" }),
+            email: joi.string().min(2).required().messages({ "string.empty": "email is required" }),
+            phone_num: joi.string().min(2).required().messages({ "string.empty": "phone_num is required" }),
+            address: joi.string().min(2).required().messages({ "string.empty": "address is required" }),
+            wing: joi.string().min(2).required().messages({ "string.empty": "wing is required" }),
+            society: joi.string().min(2).required().messages({ "string.empty": "society is required" }),
+            state: joi.string().min(2).required().messages({ "string.empty": "state is required" }),
+            city: joi.string().min(2).required().messages({ "string.empty": "city is required" }),
+            pincode: joi.string().min(2).required().messages({ "string.empty": "pincode is required" }),
         });
         validationJoi.joiValidation(schema, req.body);
         const status = true
@@ -497,6 +497,7 @@ module.exports.schedule_list = async (req, res) => {
             offset = limit * (1 - 1);
         }
         const scheduleListData = await Schedule_vehicle.findAndCountAll({
+            where: { status: "Pending" },
             limit,
             offset,
             order: [['created_at', 'DESC']]
@@ -523,15 +524,15 @@ module.exports.schedule_list = async (req, res) => {
 module.exports.assignTask = async (req, res) => {
     try {
         const schema = joi.object({
-            schedul_id: joi.number().required().messages({"string.empty": "schedul_id is required"}),
-            washer_id: joi.number().required().messages({"string.empty": "washer_id is required"}),
+            schedul_id: joi.number().required().messages({ "string.empty": "schedul_id is required" }),
+            washer_id: joi.number().required().messages({ "string.empty": "washer_id is required" }),
         });
         validationJoi.joiValidation(schema, req.body);
         const { schedul_id, washer_id } = req.body;
         const data = { schedul_id, washer_id };
         const addtask = await Washer_task.create(data);
         if (addtask) {
-            await Schedule_vehicle.update({ status: 'confirmed' }, { where: { schedul_id: schedul_id } });
+            await Schedule_vehicle.update({ status: 'confirmed' }, { where: {id: schedul_id } });
             successResponse(res, "Task Assign Successfuly");
         }
         else {
@@ -565,13 +566,13 @@ module.exports.dashboard = async (req, res) => {
 module.exports.add_service_providers = (req, res) => {
     try {
         const schema = joi.object({
-            full_name: joi.string().min(3).required().messages({"string.empty": "full_name is required"}),
-            email: joi.string().email().min(3).required().messages({"string.empty": "email is required"}),
-            phone_num: joi.number().min(10).required().messages({"string.empty": "phone_num is required"}),
-            address: joi.string().min(3).required().messages({"string.empty": "address is required"}),
-            state: joi.string().min(1).required().messages({"string.empty": "state is required"}),
-            country: joi.string().min(3).required().messages({"string.empty": "country is required"}),
-            city: joi.string().min(3).required().messages({"string.empty": "city is required"}),
+            full_name: joi.string().min(3).required().messages({ "string.empty": "full_name is required" }),
+            email: joi.string().email().min(3).required().messages({ "string.empty": "email is required" }),
+            phone_num: joi.number().min(10).required().messages({ "string.empty": "phone_num is required" }),
+            address: joi.string().min(3).required().messages({ "string.empty": "address is required" }),
+            state: joi.string().min(1).required().messages({ "string.empty": "state is required" }),
+            country: joi.string().min(3).required().messages({ "string.empty": "country is required" }),
+            city: joi.string().min(3).required().messages({ "string.empty": "city is required" }),
         });
         const { full_name, email, phone_num, address, state, country, city } = req.body;
         const data = { full_name, email, phone_num, address, state, country, city }
@@ -642,6 +643,114 @@ module.exports.registrations_control = async (req, res) => {
 }
 
 
+module.exports.view_payment = async (req, res) => {
+    try {
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
+        const historyData = await Service_payment.findAndCountAll({
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
+        })
+        if (historyData) {
+            successResponseWithData(res, "View all payment", historyData);
+        }
+        else {
+            notFoundResponse(res, "Data not found");
+
+        }
+    } catch (error) {
+        console.log('view_payment Error', error);
+        badRequest(res, error);
+    }
+}
 
 
+module.exports.viewComplaint = async (req, res) => {
+    try {
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
+        const historyData = await Complaint.findAndCountAll({
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
+        });
+        if (historyData) {
+            successResponseWithData(res, "View complaints", historyData);
+        }
+        else {
+            notFoundResponse(res, "Data not found");
 
+        }
+    } catch (error) {
+        console.log('view Complaints Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.about_us = async (req, res) => {
+    try {
+        const schema = joi.object({
+            title: joi.string().required().messages({ "string.empty": "title is required" }),
+            description: joi.string().required().messages({ "string.empty": "description is required" }),
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const { description, title, } = req.body;
+        user_id = req.userId;
+        const data = { description, title }
+        const aboutus = await AboutUs.create(data);
+        if (aboutus) {
+            successResponse(res, "About page is added successfuly");
+        }
+        else {
+            errorResponse(res, "Somthing Went Wrong");
+        }
+    } catch (error) {
+        console.log('about_us Error', error);
+        badRequest(res, error);
+    }
+};
+
+
+module.exports.contact_us = async (req, res) => {
+    try {
+        const pageSize = req.query.pageSize;
+        const pageNumber = req.query.pageNumber;
+        if (pageNumber && pageSize) {
+            limit = parseInt(pageSize);
+            offset = limit * (pageNumber - 1);
+        } else {
+            limit = parseInt(10);
+            offset = limit * (1 - 1);
+        }
+        const contact = await ContactUs.findAndCountAll({
+            limit,
+            offset,
+            order: [['created_at', 'DESC']]
+        });
+        if (contact) {
+            successResponseWithData(res, "Contact Us List", contact);
+        }
+        else {
+            notFoundResponse(res, "Data Not Found");
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+}

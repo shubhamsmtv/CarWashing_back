@@ -9,7 +9,7 @@ const { Washer_service, Service_Providers } = require('../model/washerModel');
 const { Customer_Vehilce, Customer, Schedule_vehicle } = require('../model/customerModel')
 const { Washer_task } = require('../model/adminModel');
 const uuid = require('uuid')
-const { successResponseWithData, notFoundResponse, errorResponse,  loggingRespons } = require('../middleware/apiResponse');
+const { successResponseWithData, notFoundResponse, errorResponse, loggingRespons } = require('../middleware/apiResponse');
 
 
 
@@ -30,10 +30,10 @@ module.exports.add_service = async (req, res) => {
             const imageNewName = uuid.v1() + '.' + imageExtantion;;
             const uploadPath = 'public/serviceImg/' + imageNewName;
             image.mv(uploadPath);
-            serviceData.image =imageNewName
+            serviceData.image = imageNewName
             const addServise = await Washer_service.create(serviceData);
             if (addServise) {
-                await Schedule_vehicle.update({status:'In-progress'},{where:{id:schedule_id}});
+                await Schedule_vehicle.update({ status: 'In-progress' }, { where: { id: schedule_id } });
                 successResponse(
                     res,
                     'Service Added Successfuly',
@@ -54,7 +54,7 @@ module.exports.add_service = async (req, res) => {
 module.exports.login = async (req, res) => {
     try {
         const schema = joi.object({
-            phone_num: joi.string().min(10).required().messages({"string.empty": "phone_num is required"}),
+            phone_num: joi.string().min(10).required().messages({ "string.empty": "phone_num is required" }),
         });
         validation.joiValidation(schema, req.body);
         const phone_num = req.body.phone_num;
@@ -103,10 +103,10 @@ module.exports.login = async (req, res) => {
 module.exports.otpVerify = async (req, res) => {
     try {
         const schema = joi.object({
-            phoneNum: joi.string().min(10).required().messages({"string.empty": "phone_num is required"}),
-            otp: joi.number().min(4).required().messages({"string.empty": "otp is required"}),
-            fcm_token: joi.string().required().messages({"string.empty": "fcm_token is required"}),
-            device_type: joi.number().required().messages({"string.empty": "device_type is required"}),
+            phoneNum: joi.string().min(10).required().messages({ "string.empty": "phone_num is required" }),
+            otp: joi.number().min(4).required().messages({ "string.empty": "otp is required" }),
+            fcm_token: joi.string().required().messages({ "string.empty": "fcm_token is required" }),
+            device_type: joi.number().required().messages({ "string.empty": "device_type is required" }),
         });
         validation.joiValidation(schema, req.body);
         const { fcm_token, device_type } = req.body;
@@ -168,47 +168,54 @@ module.exports.otpVerify = async (req, res) => {
 
 
 
-module.exports.completeProfile = (req, res) => {
+module.exports.completeProfile = async (req, res) => {
     try {
         const schema = joi.object({
-            fullName: joi.string().min(3).required().messages({"string.empty": "fullName is required"}),
-            email: joi.string().email().min(3).required().messages({"string.empty": "email is required"}),
-            phone_num: joi.string().min(10).required().messages({"string.empty": "phone_num is required"}),
-            address: joi.string().min(3).required().messages({"string.empty": "address is required"}),
-            state: joi.string().min(1).required().messages({"string.empty": "state is required"}),
-            country: joi.string().min(3).required().messages({"string.empty": "country is required"}),
-            city: joi.string().min(3).required().messages({"string.empty": "city is required"}),
+            full_name: joi.string().min(3).required().messages({ "string.empty": "fullName is required" }),
+            // email: joi.string().email().min(3).required().messages({"string.empty": "email is required"}),
+            phone_num: joi.number().min(10).required().messages({ "string.empty": "phone_num is required" }),
+            // address: joi.string().min(3).required().messages({"string.empty": "address is required"}),
+            // state: joi.string().min(1).required().messages({"string.empty": "state is required"}),
+            // country: joi.string().min(3).required().messages({"string.empty": "country is required"}),
+            // city: joi.string().min(3).required().messages({"string.empty": "city is required"}),
         });
-        const { fullName, email, phone_num, address, state, country, city } = req.body;
-        const data = { fullName, email, phone_num, address, state, country, city }
+        const { full_name, phone_num } = req.body;
+        const data = { full_name, phone_num }
         validation.joiValidation(schema, data);
         const userId = req.userId;
         data.Pro_status = true
-        if (req.files && req.files.image) {
-            const image = req.files.image;
-            const imageName = image.name;
-            const imageExtantion = imageName.split('.').pop();
-            const imageNewName = uuid.v1() + '.' + imageExtantion;;
-            const uploadPath = 'public/washer_profile/' + imageNewName;
-            image.mv(uploadPath, async (error, result) => {
-                if (error) {
-                    console.log('error', error);
-                }
-                else {
-                    data.image = imageNewName
-                    const addWasher = await Service_Providers.update(data, { where: { id: userId } });
-                    if (addWasher) {
-                        successResponse(
-                            res,
-                            'Profile Update Successfuly',
-                        )
-                    }
-                }
-            });
+        const addWasher = await Service_Providers.update(data, { where: { id: userId } });
+        if (addWasher) {
+            successResponse(
+                res,
+                'Profile Update Successfuly',
+            )
         }
-        else {
-            res.status(400).json({ 'message': "image is required" });
-        }
+        // if (req.files && req.files.image) {
+        //     const image = req.files.image;
+        //     const imageName = image.name;
+        //     const imageExtantion = imageName.split('.').pop();
+        //     const imageNewName = uuid.v1() + '.' + imageExtantion;;
+        //     const uploadPath = 'public/washer_profile/' + imageNewName;
+        //     image.mv(uploadPath, async (error, result) => {
+        //         if (error) {
+        //             console.log('error', error);
+        //         }
+        //         else {
+        //             data.image = imageNewName
+        //             const addWasher = await Service_Providers.update(data, { where: { id: userId } });
+        //             if (addWasher) {
+        //                 successResponse(
+        //                     res,
+        //                     'Profile Update Successfuly',
+        //                 )
+        //             }
+        //         }
+        //     });
+        // }
+        // else {
+        //     res.status(400).json({ 'message': "image is required" });
+        // }
     } catch (error) {
         console.log('completeProfile', error);
         badRequest(res, error);
@@ -284,21 +291,21 @@ module.exports.assignTaskList = async (req, res) => {
 
 
 
-module.exports.service_status = async(req,res) => {
+module.exports.service_status = async (req, res) => {
     try {
         const schedule_id = req.body.task_id
         const service_status = req.body.service_status;
         const description = req.body.description;
-        const response = await Washer_task.update({status:service_status, comment:description}, { where: { schedul_id: schedule_id } });
-        
+        const response = await Washer_task.update({ status: service_status, comment: description }, { where: { schedul_id: schedule_id } });
+
         if (response) {
             successResponse(
                 res,
                 'Status Updated Successfuly'
             )
         }
-        else{
-            errorResponse(res,"Somthing Went Wrong")
+        else {
+            errorResponse(res, "Somthing Went Wrong")
         }
     } catch (error) {
         console.log('service_status Error', error);
@@ -307,15 +314,15 @@ module.exports.service_status = async(req,res) => {
 }
 
 
-module.exports.taskHistory = async(req,res) => {
+module.exports.taskHistory = async (req, res) => {
     try {
         const washer_id = req.userId;
-        const history = await Washer_task.findAll({where: {washer_id:washer_id, status:"Completed"}});
-        if(history.length){
-            successResponseWithData(res,"Complele Task List",history);
+        const history = await Washer_task.findAll({ where: { washer_id: washer_id, status: "Completed" } });
+        if (history.length) {
+            successResponseWithData(res, "Complele Task List", history);
         }
-        else{
-            notFoundResponse(res,"Data Not Found");
+        else {
+            notFoundResponse(res, "Data Not Found");
         }
     } catch (error) {
         console.log('taskHistory Error', error);
