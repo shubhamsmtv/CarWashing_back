@@ -1,7 +1,7 @@
 const joi = require('joi');
 const validateSchema = require('../helper/joiValidation');
 const { Customer, State, Cities, Pincode, Customer_Vehilce, Wallet, Schedule_vehicle, Slider, Address, Complaint } = require('../model/customerModel');
-const { Vehicle_category, Service_payment, ContactUs, AboutUs } = require('../model/adminModel');
+const { Vehicle_category, Service_payment, ContactUs, Pages, Setting } = require('../model/adminModel');
 const { Washer_service } = require('../model/washerModel');
 const otoGenerator = require('otp-generator')
 const axios = require('axios');
@@ -10,9 +10,7 @@ const { sequelize } = require('../helper/db');
 const uuid = require('uuid');
 const moment = require('moment');
 const { successResponseWithData, errorResponse, successResponse, notFoundResponse, badRequest, loggingRespons, successCompleteRes, velideUser } = require('../middleware/apiResponse');
-// const FCM = require('fcm-node');
-// const server_key = process.env.FCM_SERVER_KEY;
-// const fcm = new FCM(server_key);
+
 
 
 
@@ -110,20 +108,27 @@ module.exports.login = async (req, res) => {
             }
         }
         else {
-            const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
-            const data = { phone_num, otp }
-            const sendOTP = async (phone_num, otp) => {
-                console.log('daphone_Numta', phone_num)
-                const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
-                if (res.status == 200 && res.data.status == "success") {
-                    const response = await Customer.create(data);
-                    console.log(response);
-                    return response
+            const register_switch = await Setting.findOne({ where: { key_name: 'is_registration' } });
+            if (register_switch && register_switch.value == 1) {
+                console.log('registration is on');
+                const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+                const data = { phone_num, otp }
+                const sendOTP = async (phone_num, otp) => {
+                    console.log('daphone_Numta', phone_num)
+                    const res = await axios.get(`http://cloudsms.digialaya.com/ApiSmsHttp?UserId=sms@fintranxect.com&pwd=pwd2022&Message=${otp}%20is%20verification%20otp%20for%20finnit.com.%20OTPs%20are%20SECRET.%20DO%20NOT%20disclose%20it%20to%20anyone.%20FINTRANXECT&Contacts=${phone_num}&SenderId=FTLAPP&ServiceName=SMSTRANS&MessageType=1&StartTime=&DLTTemplateId=1707166903059048617`)
+                    if (res.status == 200 && res.data.status == "success") {
+                        const response = await Customer.create(data);
+                        console.log(response);
+                        return response
+                    }
+                }
+                const result = await sendOTP(phone_num, otp);
+                if (result) {
+                    successResponseWithData(res, "Otp Send Successfully", otp)
                 }
             }
-            const result = await sendOTP(phone_num, otp);
-            if (result) {
-                successResponseWithData(res, "Otp Send Successfully", otp)
+            else {
+                errorResponse(res,"Some Time New Registration Is Off")
             }
         }
     } catch (error) {
@@ -898,48 +903,6 @@ module.exports.feedback = async (req, res) => {
 }
 
 
-// module.exports.notification = (req, res) => {
-//     try {
-//         const registerToken = req.body.registerToken;
-//         const title = req.body.title;
-//         if (registerToken) {
-//             var msg = {}
-//             var data = {
-//                 package: "kuch bhi",
-//                 userId: 5,
-//                 eventId: 4,
-//             }
-//             msg.to = req.body.registerToken
-//             msg.data = {
-//                 my_key: 'my value',
-//                 contents: "abcv/",
-//                 body: "Body 9",
-//                 title: "title 9",
-//                 package:"EventData.packagetype",
-//                 userId:2,
-//                 eventId:9
-//             }
-
-
-//             fcm.send(msg, function (err, response) {
-//                 if (err) {
-//                     console.log("Something has gone wrong!", err);
-//                 } else {
-//                     console.log("Successfully sent with response: ", response);
-//                 }
-//             });
-//         }
-//         else {
-//             errorResponse(
-//                 res,
-//                 "registerToken is require",
-//             )
-//         }
-//     } catch (error) {
-//         console.log('notification Error', error);
-//         badRequest(res, error);
-//     }
-// }
 
 module.exports.service_payment = async (req, res) => {
     try {
@@ -1043,10 +1006,10 @@ module.exports.service_amount = async (req, res) => {
         // const scheduleData = await Schedule_vehicle.findOne({ where: { id: schedule_id } });
         // if (scheduleData) {
         const schema = joi.object({
-            start_date : joi.string().required().messages({ "string.empty": "start_date is required" }),
-            end_date : joi.string().required().messages({ "string.empty": "end_date is required" })
+            start_date: joi.string().required().messages({ "string.empty": "start_date is required" }),
+            end_date: joi.string().required().messages({ "string.empty": "end_date is required" })
         });
-        validateSchema.joiValidation(schema,req.body);
+        validateSchema.joiValidation(schema, req.body);
         const start_date = req.body.start_date;
         const end_date = req.body.end_date;
         // const start_date = "2023-03-17";
@@ -1118,11 +1081,9 @@ module.exports.addContactUs = async (req, res) => {
 
 module.exports.get_about_us = async (req, res) => {
     try {
-        const get_aboutus = await AboutUs.findAll({
-            order: [['created_at', 'DESC']]
-        });
+        const get_aboutus = await Pages.findAll();
         if (get_aboutus.length) {
-            successResponseWithData(res, "About us list", get_aboutus);
+            successResponseWithData(res, "Pages us list", get_aboutus);
         }
         else {
             notFoundResponse(res, "Data Not Found");

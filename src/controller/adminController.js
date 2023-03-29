@@ -1,5 +1,5 @@
 const uuid = require('uuid');
-const { Vehicle_category, Admin, Washer_task, Setting, Service_payment, AboutUs, ContactUs } = require('../model/adminModel');
+const { Vehicle_category, Admin, Washer_task, Setting, Service_payment, Pages, ContactUs } = require('../model/adminModel');
 const { Customer, Schedule_vehicle, Customer_Vehilce, Complaint } = require('../model/customerModel');
 const { Service_Providers } = require('../model/washerModel');
 const joi = require('joi');
@@ -10,6 +10,10 @@ const jwt = require('jsonwebtoken');
 const { loggingRespons, errorResponse, notFoundResponse, badRequest, successResponse, adminLoggingRespons, successResponseWithData } = require('../middleware/apiResponse');
 const { sequelize } = require('../helper/db');
 const send_mailer = require('../helper/nodemailer');
+const otoGenerator = require('otp-generator');
+const FCM = require('fcm-node');
+const server_key = process.env.FCM_SERVER_KEY;
+const fcm = new FCM(server_key);
 
 module.exports.login = async (req, res) => {
     try {
@@ -532,7 +536,7 @@ module.exports.assignTask = async (req, res) => {
         const data = { schedul_id, washer_id };
         const addtask = await Washer_task.create(data);
         if (addtask) {
-            await Schedule_vehicle.update({ status: 'confirmed' }, { where: {id: schedul_id } });
+            await Schedule_vehicle.update({ status: 'confirmed' }, { where: { id: schedul_id } });
             successResponse(res, "Task Assign Successfuly");
         }
         else {
@@ -708,23 +712,55 @@ module.exports.about_us = async (req, res) => {
         const schema = joi.object({
             title: joi.string().required().messages({ "string.empty": "title is required" }),
             description: joi.string().required().messages({ "string.empty": "description is required" }),
+            page_type: joi.string().required().messages({ "string.empty": "page_type is required" }),
         });
         validationJoi.joiValidation(schema, req.body);
-        const { description, title, } = req.body;
+        const { description, title, page_type } = req.body;
         user_id = req.userId;
-        const data = { description, title }
-        const aboutus = await AboutUs.create(data);
+        const data = { description, title, page_type }
+        const aboutus = await Pages.findOne({ where: { page_type: '1' } });
         if (aboutus) {
-            successResponse(res, "About page is added successfuly");
+            const upAbout = await Pages.update(data, { where: { id: aboutus.id } });
+            if (upAbout) {
+                successResponse(res, "About_us updated successfuly");
+            }
+            else {
+                errorResponse(res, "Somthing Went Wrong");
+            }
         }
         else {
-            errorResponse(res, "Somthing Went Wrong");
+            const addAbout = await Pages.create(data);
+            if (addAbout) {
+                successResponse(res, "About page is added successfuly");
+            }
+            else {
+                errorResponse(res, "Somthing Went Wrong");
+            }
         }
     } catch (error) {
         console.log('about_us Error', error);
         badRequest(res, error);
     }
 };
+
+
+
+module.exports.get_about_us = async (req, res) => {
+    try {
+        const aboutUs = await Pages.findOne({ where: { page_type: '1' } });
+        if (aboutUs) {
+            successResponseWithData(res, "About us", aboutUs);
+        }
+        else {
+            notFoundResponse(res, "Data Not Found");
+        }
+    } catch (error) {
+        console.log('get_about_us Error', error);
+        badRequest(res, error);
+    }
+}
+
+
 
 
 module.exports.contact_us = async (req, res) => {
@@ -750,7 +786,205 @@ module.exports.contact_us = async (req, res) => {
             notFoundResponse(res, "Data Not Found");
         }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Something went wrong' });
+        console.log('contact_us Error', error);
+        badRequest(res, error);
     }
 }
+
+
+
+module.exports.add_terms = async (req, res) => {
+    try {
+        const schema = joi.object({
+            title: joi.string().required().messages({ "string.empty": "title is required" }),
+            description: joi.string().required().messages({ "string.empty": "description is required" }),
+            page_type: joi.string().required().messages({ "string.empty": "page_type is required" }),
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const { description, title, page_type } = req.body;
+        user_id = req.userId;
+        const data = { description, title, page_type }
+        const terms = await Pages.findOne({ where: { page_type: '2' } });
+        if (terms) {
+            const upTerms = await Pages.update(data, { where: { id: terms.id } });
+            if (upTerms) {
+                successResponse(res, "Terms and Condition updated successfuly");
+            }
+            else {
+                errorResponse(res, "Somthing Went Wrong");
+            }
+        }
+        else {
+            const addTerms = await Pages.create(data);
+            if (addTerms) {
+                successResponse(res, "Terms and Condition added successfuly");
+            }
+            else {
+                errorResponse(res, "Somthing Went Wrong");
+            }
+        }
+    } catch (error) {
+        console.log('add_terms Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+module.exports.get_terms = async (req, res) => {
+    try {
+        const aboutUs = await Pages.findOne({ where: { page_type: '2' } });
+        if (aboutUs) {
+            successResponseWithData(res, "About us", aboutUs);
+        }
+        else {
+            notFoundResponse(res, "Data Not Found");
+        }
+    } catch (error) {
+        console.log('get_terms Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+module.exports.forget_password = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().min(1).required().messages({ "string.empty": "email is required" }),
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const email = req.body.email;
+        const otp = otoGenerator.generate(4, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false, digits: true });
+        const getEmail = await Admin.findOne({ where: { email: email } });
+        console.log('email', email);
+        if (getEmail) {
+            const subject = 'Rest password otp'
+            const text = 'Hello ' + getEmail.name + 'Youer OTP is' + otp + '.'
+            send_mailer.sendMail(email, subject, text);
+            const updateOtp = await Admin.update({ otp: otp }, { where: { email: email } });
+            if (updateOtp) {
+                successResponse(res, "OTP send Your Email");
+            }
+        }
+
+        else {
+            notFoundResponse(res, "Email not exsistt")
+        }
+    }
+    catch (error) {
+        console.log('forget_password error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.otpVerify = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().min(10).required().messages({ "string.empty": "email is required" }),
+            otp: joi.number().min(4).required().messages({ "string.empty": "otp is required" }),
+
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const otp = req.body.otp;
+        const email = req.body.email;
+        const getAdmin = await Admin.findOne({ where: { email: email } });
+        if (getAdmin) {
+            if (getAdmin.otp == otp) {
+                successResponse(res, "OTP is verify")
+            }
+            else {
+                errorResponse(res, "Invaled OTP")
+            }
+        }
+        else {
+            errorResponse(
+                res,
+                "Email does not exist"
+            )
+        }
+    } catch (error) {
+        console.log('otpVerify Error', error);
+        badRequest(res, error);
+    }
+}
+
+module.exports.resetPassword = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().email().required().messages({ "string.empty": "email is required" }),
+            password: joi.string().required().messages({ "string.empty": "password is required" }),
+            confirmation_password: joi.any().equal(joi.ref('password'))
+                .required()
+                .label('Confirm password')
+                .messages({ "string.empty": '{{#label}} does not match' })
+        });
+        validationJoi.joiValidation(schema, req.body);
+        const email = req.body.email;
+        const password = sha1(req.body.password);
+        const getAdmin = await Admin.findOne({ where: { email: email } });
+        if (getAdmin) {
+            await Admin.update({ password: password }, { where: { email: email } })
+            loggingRespons(
+                res,
+                "password reset successfully",
+            )
+        }
+        else {
+            errorResponse(
+                res,
+                "Email does not exist"
+            )
+        }
+    }
+
+    catch (error) {
+        console.log('resetPassword Error', error);
+        badRequest(res, error);
+    }
+}
+
+
+
+
+
+// module.exports.notification = async (req, res) => {
+//     try {
+//         const user_id = req.body.user_id
+//         const user = await Service_Providers.findOne({ where: { id: user_id } });
+//         console.log('user',user)
+//         if (user) {
+//             const registerToken = req.body.registerToken;
+//             const title = req.body.title;
+//             const description = req.body.description;
+//             if (registerToken) {
+//                 var msg = {}
+//                 msg.to = req.body.registerToken
+//                 msg.data = {
+//                     my_key: 'my value',
+//                     contents: "abcv/",
+//                     body: description,
+//                     title: title,
+//                 }
+//                 fcm.send(msg, function (err, response) {
+//                     if (err) {
+//                         console.log("Something has gone wrong!", err);
+//                     } else {
+                        
+//                         console.log("Successfully sent with response: ", response);
+//                     }
+//                 });
+//             }
+//             else {
+//                 errorResponse(
+//                     res,
+//                     "registerToken is require",
+//                 )
+//             }
+//         } else {
+//             notFoundResponse(res,"User not found");
+//         }
+//     } catch (error) {
+//         console.log('notification Error', error);
+//         badRequest(res, error);
+//     }
+// }

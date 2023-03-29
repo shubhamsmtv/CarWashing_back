@@ -24,8 +24,14 @@ app.post('/registrations_control', authValidation.validateToken, adminController
 app.get('/view_payment', authValidation.validateToken, adminController.view_payment);
 app.get('/viewComplaint', authValidation.validateToken, adminController.viewComplaint);
 app.post('/about_us', authValidation.validateToken, adminController.about_us);
+app.get('/get_about_us', authValidation. validateToken, adminController.get_about_us);
 app.get('/contact_us', authValidation.validateToken, adminController.contact_us);
-
+app.post('/add_terms', authValidation.validateToken, adminController.add_terms);
+app.get('/get_terms', authValidation.validateToken, adminController.get_terms);
+app.post('/forget_password', adminController.forget_password);
+app.post('/otpVerify', adminController.otpVerify);
+app.post('/resetPassword',adminController.resetPassword);
+// app.post('/notification', authValidation.validateToken, adminController.notification)
 
 module.exports = app;
 

@@ -29,7 +29,6 @@ app.get('/address', jwtToken.validateToken, customerController.address);
 app.post('/addAdrress', jwtToken.validateToken, customerController.addParkingAdrress);
 app.get('/afterService/:schedule_id', jwtToken.validateToken, customerController.afterService);
 app.post('/feedback', jwtToken.validateToken, customerController.feedback);
-// app.post('/notification', jwtToken.validateToken , customerController.notification);
 app.post('/service_payment', jwtToken.validateToken, customerController.service_payment);
 app.get('/transactionHistory', jwtToken.validateToken, customerController.transactionHistory);
 app.post('/addComplaint', jwtToken.validateToken, customerController.addComplaint);

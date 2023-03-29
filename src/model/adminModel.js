@@ -38,6 +38,10 @@ const Admin = sequelize.define('admin',{
         type: DataTypes.STRING,
         allowNull: false
     },
+    otp: {
+        type: DataTypes.NUMBER,
+        allowNull: true
+    },
     created_at: {
         type: DataTypes.DATE,
         allowNull: new Date()
@@ -131,24 +135,20 @@ const Setting = sequelize.define('setting',{
 },{tableName:'setting'});
 
 
-const AboutUs = sequelize.define('aboutus', {
-    title: {
-      type: Sequelize.STRING,
-      allowNull: false,
+const Pages = sequelize.define('pages',{
+    title : {
+        type : DataTypes.STRING,
+        allowNull: true
     },
-    description: {
-      type: Sequelize.STRING,
-      allowNull: false,
+    page_type : {
+        type : DataTypes.NUMBER,
+        allowNull: true
     },
-    created_at: {
-        type: DataTypes.DATE,
-        allowNull: new Date()
-    },
-    updated_at: {
-        type: DataTypes.DATE,
-        allowNull: new Date()
-    }
-},{tableName:'aboutus'});
+    description : {
+        type : DataTypes.STRING,
+        allowNull: true
+    },  
+},{tableName:'pages'});
 
 
 const ContactUs = sequelize.define('contactus', {
@@ -166,12 +166,17 @@ const ContactUs = sequelize.define('contactus', {
     },
   },{tableName:'contactus'});
 
+
+  const Notification = sequelize.define('admin_notification',{
+    
+  });
+
 module.exports = {
     Vehicle_category,
     Admin,
     Washer_task,
     Service_payment,
     Setting,
-    AboutUs,
+    Pages,
     ContactUs
 }
